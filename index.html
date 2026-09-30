@@ -342,6 +342,9 @@ button.srow:hover { background: var(--bg); }
       <h2 id="childTodayTitle"></h2>
       <p class="caption">見るだけの画面です。記録はお子さんのスマホで入力します。新しい記録は、お子さんに「おうちの人に送る」で送ってもらい、下の「子どもの記録を受け取る」で更新します。</p>
     </div>
+    <div class="banner" id="lineWarn" hidden>
+      <span><b>LINEの中でひらいています。</b>このままだと記録が消えることがあるよ。右上の<b>︙</b>（または下の方のボタン）から「<b>ブラウザで開く</b>」をえらんで、Safari か Chrome でひらいてね。</span>
+    </div>
     <div class="welcome" id="welcome" hidden>
       <h2>はじめまして！</h2>
       <p>このアプリは、まいあさ「ねた時こく」「おきた時こく」「学校に行けたか」をつけるだけ。1分でおわるよ。</p>
@@ -1577,6 +1580,8 @@ button.srow:hover { background: var(--bg); }
   }));
   document.querySelectorAll("[data-scope]").forEach((b) => b.addEventListener("click", () => { state.scope = b.dataset.scope; render(); }));
   document.querySelectorAll("[data-age]").forEach((b) => b.addEventListener("click", () => { if (kid()) return; state.prefs.age = b.dataset.age; writePrefs(); }));
+  // LINE's in-app browser keeps its own storage that can be cleared, so point kids to a real browser
+  if (/\bLine\//i.test(navigator.userAgent || "")) $("lineWarn").hidden = false;
   const WELCOME = "suimin-check-welcomed";
   function showHowto() {
     go("learn");
