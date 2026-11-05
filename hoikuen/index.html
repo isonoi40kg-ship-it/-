@@ -1,0 +1,754 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="若夏保育園の登園・退園と延長保育を記録するアプリ。">
+<meta name="theme-color" content="#2f8a4e">
+<title>若夏保育園 登降園</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=BIZ+UDPGothic:wght@400;700&family=BIZ+UDGothic:wght@400;700&display=swap">
+<style>
+:root {
+  --bg: #f3f6ef; --paper: #ffffff; --ink: #1f2a22; --muted: #5d6a60;
+  --line: #dde5d8; --line-strong: #b6c4b1;
+  --brand: #2f8a4e; --brand-ink: #ffffff; --brand-soft: #dcefe0;
+  --sun: #c8701a; --sun-soft: #fdead3;
+  --leave: #3b67a8; --leave-soft: #dde7f5;
+  --absent: #b0436b; --absent-soft: #f6dee7;
+  --idle: #8d998f; --idle-soft: #eceff0;
+  --f-display: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "BIZ UDPGothic", sans-serif;
+  --f-body: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+  --f-num: "BIZ UDGothic", "Hiragino Sans", ui-monospace, monospace;
+  --tabbar: 64px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111a14; --paper: #19241c; --ink: #e6eee7;
+    --muted: #a0aea3; --line: #2a3a2e; --line-strong: #41574a;
+    --brand: #5cc282; --brand-ink: #0d1a11; --brand-soft: #1f3a27;
+    --sun: #f0a456; --sun-soft: #3d2c18;
+    --leave: #82aaf0; --leave-soft: #1f2d45;
+    --absent: #e07ba0; --absent-soft: #3e1f2b;
+    --idle: #7c8a80; --idle-soft: #232d26;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111a14; --paper: #19241c; --ink: #e6eee7; --muted: #a0aea3;
+  --line: #2a3a2e; --line-strong: #41574a;
+  --brand: #5cc282; --brand-ink: #0d1a11; --brand-soft: #1f3a27;
+  --sun: #f0a456; --sun-soft: #3d2c18;
+  --leave: #82aaf0; --leave-soft: #1f2d45;
+  --absent: #e07ba0; --absent-soft: #3e1f2b;
+  --idle: #7c8a80; --idle-soft: #232d26;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.6; -webkit-tap-highlight-color: transparent; }
+h1, h2, h3 { font-family: var(--f-display); margin: 0; line-height: 1.35; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.num { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.small { font-size: .85rem; }
+
+/* ---------- layout ---------- */
+.app { max-width: 1120px; margin: 0 auto; padding: 0 16px calc(var(--tabbar) + 24px + env(safe-area-inset-bottom, 0px)); }
+.topbar { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: calc(10px + env(safe-area-inset-top, 0px)) 0 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand svg { flex: none; }
+.brand h1 { font-size: 1.2rem; font-weight: 900; white-space: nowrap; }
+.brand .sub { font-size: .78rem; color: var(--muted); white-space: nowrap; }
+.clock { font-family: var(--f-num); font-size: 1.5rem; font-weight: 700; letter-spacing: .02em; }
+.screen { padding-top: 14px; }
+.screen h2 { font-size: 1.15rem; font-weight: 700; }
+
+/* ---------- day nav ---------- */
+.daynav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.daynav .d { font-family: var(--f-display); font-size: 1.25rem; font-weight: 700; }
+.iconbtn { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--paper); font-size: 1.3rem; line-height: 1; }
+.pastnote { font-size: .82rem; color: var(--sun); background: var(--sun-soft); border-radius: 8px; padding: 2px 8px; }
+
+/* ---------- summary ---------- */
+.summary { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.stat { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 8px 10px; }
+.stat .k { font-size: .75rem; color: var(--muted); }
+.stat .v { font-family: var(--f-num); font-size: 1.5rem; font-weight: 700; line-height: 1.2; }
+.stat.in .v { color: var(--brand); }
+.stat.ext .v { color: var(--sun); }
+.stat.ab .v { color: var(--absent); }
+@media (max-width: 520px) { .summary { grid-template-columns: repeat(3, minmax(0, 1fr)); } .stat.hide-sm { display: none; } }
+
+/* ---------- filters ---------- */
+.filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.chip { border: 1px solid var(--line-strong); background: var(--paper); border-radius: 999px; padding: 6px 14px; font-size: .9rem; min-height: 36px; }
+.chip[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); font-weight: 700; }
+.search { flex: 1 1 160px; min-width: 0; max-width: 260px; border: 1px solid var(--line-strong); background: var(--paper); border-radius: 999px; padding: 6px 14px; min-height: 36px; }
+
+/* ---------- kid cards ---------- */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+.clsHead { grid-column: 1 / -1; font-family: var(--f-display); font-weight: 700; color: var(--muted); font-size: .95rem; margin-top: 6px; display: flex; gap: 8px; align-items: baseline; }
+.kid { background: var(--paper); border: 1px solid var(--line); border-left: 6px solid var(--idle); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.kid.st-in { border-left-color: var(--brand); }
+.kid.st-ext { border-left-color: var(--sun); }
+.kid.st-out { border-left-color: var(--leave); }
+.kid.st-absent { border-left-color: var(--absent); opacity: .85; }
+.kid-top { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.kid-name { font-family: var(--f-display); font-size: 1.2rem; font-weight: 700; line-height: 1.3; }
+.kid-sub { font-size: .8rem; color: var(--muted); }
+.badge { flex: none; font-size: .78rem; font-weight: 700; border-radius: 999px; padding: 3px 10px; background: var(--idle-soft); color: var(--idle); white-space: nowrap; }
+.st-in .badge { background: var(--brand-soft); color: var(--brand); }
+.st-ext .badge { background: var(--sun-soft); color: var(--sun); }
+.st-out .badge { background: var(--leave-soft); color: var(--leave); }
+.st-absent .badge { background: var(--absent-soft); color: var(--absent); }
+.times { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tcell { border: 1px dashed var(--line-strong); background: transparent; border-radius: 10px; padding: 4px 10px; text-align: left; }
+.tcell .k { font-size: .72rem; color: var(--muted); display: block; }
+.tcell .v { font-family: var(--f-num); font-size: 1.25rem; font-weight: 700; }
+.meta { font-size: .8rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.meta .ext { color: var(--sun); font-weight: 700; }
+.meta .warn { color: var(--absent); font-weight: 700; }
+.acts { display: flex; gap: 8px; }
+.btn { border: 0; border-radius: 12px; padding: 10px 16px; font-weight: 700; min-height: 48px; background: var(--brand); color: var(--brand-ink); font-family: var(--f-display); font-size: 1.05rem; }
+.btn.big { flex: 1; }
+.btn.leave { background: var(--leave); color: #fff; }
+:root[data-theme="dark"] .btn.leave { color: #0d1a2b; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.leave { color: #0d1a2b; } }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line-strong); font-family: var(--f-body); font-size: .92rem; font-weight: 400; }
+.btn.danger { background: transparent; color: var(--absent); border: 1px solid var(--absent); font-family: var(--f-body); font-size: .92rem; }
+.btn.sm { min-height: 40px; padding: 6px 12px; font-size: .9rem; }
+.note { font-size: .82rem; background: var(--bg); border-radius: 8px; padding: 4px 8px; }
+
+.empty { background: var(--paper); border: 1px dashed var(--line-strong); border-radius: 16px; padding: 28px 20px; text-align: center; }
+.empty p { margin: 6px 0 14px; color: var(--muted); }
+.empty .acts { justify-content: center; flex-wrap: wrap; }
+
+/* ---------- panels ---------- */
+.panel { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+.panel h2 { margin-bottom: 10px; }
+.panel p { margin: 4px 0 10px; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.field label, .field .lbl { font-size: .85rem; color: var(--muted); }
+.field input, .field select, .field textarea, .inline-input { border: 1px solid var(--line-strong); background: var(--paper); border-radius: 10px; padding: 8px 10px; min-height: 44px; width: 100%; }
+.field textarea { min-height: 70px; resize: vertical; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.check { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.check input { width: 22px; height: 22px; accent-color: var(--brand); }
+
+/* ---------- table ---------- */
+.tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+th { font-size: .78rem; color: var(--muted); font-weight: 700; background: var(--bg); position: sticky; top: 0; }
+td.r, th.r { text-align: right; }
+tr.sum td { font-weight: 700; background: var(--bg); }
+tr.clickable { cursor: pointer; }
+tr.clickable:hover td { background: var(--brand-soft); }
+tr.detail td { background: var(--bg); white-space: normal; padding: 0; }
+.daylist { width: 100%; font-size: .85rem; }
+.daylist td, .daylist th { background: transparent; }
+.ext-c { color: var(--sun); font-weight: 700; }
+
+.kidrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.kidrow:last-child { border-bottom: 0; }
+.kidrow .n { font-weight: 700; }
+.tag { font-size: .72rem; border-radius: 6px; padding: 1px 6px; background: var(--idle-soft); color: var(--muted); margin-left: 4px; }
+
+/* ---------- tabbar ---------- */
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: var(--paper); border-top: 1px solid var(--line); display: flex; justify-content: center; padding-bottom: env(safe-area-inset-bottom, 0px); }
+.tabbar .in { display: grid; grid-template-columns: repeat(4, 1fr); width: 100%; max-width: 640px; }
+.tabbar button { border: 0; background: transparent; height: var(--tabbar); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: .75rem; color: var(--muted); }
+.tabbar button svg { width: 24px; height: 24px; }
+.tabbar button[aria-current="page"] { color: var(--brand); font-weight: 700; }
+
+/* ---------- dialog / toast ---------- */
+dialog { border: 0; border-radius: 18px; padding: 0; width: min(440px, calc(100vw - 32px)); background: var(--paper); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+dialog::backdrop { background: rgba(10, 20, 12, .45); }
+dialog form { padding: 18px; }
+dialog h2 { font-size: 1.15rem; margin-bottom: 4px; }
+dialog .sub { font-size: .85rem; color: var(--muted); margin-bottom: 14px; }
+dialog .foot { display: flex; gap: 8px; justify-content: space-between; flex-wrap: wrap; margin-top: 6px; }
+dialog .foot .r { display: flex; gap: 8px; margin-left: auto; }
+.nowbtn { border: 1px solid var(--line-strong); background: transparent; border-radius: 8px; padding: 2px 8px; font-size: .8rem; align-self: flex-start; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tabbar) + 14px + env(safe-area-inset-bottom, 0px)); z-index: 20; background: var(--ink); color: var(--bg); border-radius: 14px; padding: 10px 12px 10px 16px; display: flex; gap: 12px; align-items: center; max-width: calc(100vw - 32px); box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+.toast button { white-space: nowrap; flex: none; border: 0; background: transparent; color: var(--brand-soft); font-weight: 700; padding: 6px 8px; text-decoration: underline; }
+.banner { background: var(--absent-soft); color: var(--absent); border-radius: 12px; padding: 10px 14px; margin-top: 12px; font-size: .9rem; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="17" fill="var(--brand-soft)"/><path d="M18 27c0-7 0-11 0-13" stroke="var(--brand)" stroke-width="2.4" stroke-linecap="round" fill="none"/><path d="M18 16c-6 0-9-3-9-8 5 0 9 3 9 8z" fill="var(--brand)"/><path d="M18 19c5 0 8-3 8-7-5 0-8 3-8 7z" fill="var(--brand)" opacity=".7"/></svg>
+      <div><h1>若夏保育園</h1><div class="sub">登園・退園・延長保育</div></div>
+    </div>
+    <div class="clock" id="clock">--:--</div>
+  </header>
+  <div class="banner" id="storeWarn" hidden>この端末では記録を保存できません（プライベートブラウズなど）。通常のブラウザで開いてください。</div>
+
+  <!-- ========== 今日 ========== -->
+  <section class="screen" id="s-today">
+    <div class="daynav">
+      <button type="button" class="iconbtn" id="dPrev" aria-label="前の日">‹</button>
+      <span class="d" id="dLabel"></span>
+      <button type="button" class="iconbtn" id="dNext" aria-label="次の日">›</button>
+      <button type="button" class="chip" id="dToday" hidden>今日にもどる</button>
+      <span class="pastnote" id="pastNote" hidden>過去の日付です（時刻は手入力）</span>
+    </div>
+    <div class="summary" id="summary"></div>
+    <div class="filters" id="filters"></div>
+    <div class="grid" id="kidGrid"></div>
+  </section>
+
+  <!-- ========== 記録 ========== -->
+  <section class="screen" id="s-history" hidden>
+    <div class="row" style="justify-content:space-between;margin-bottom:12px">
+      <div class="row">
+        <h2>月の記録</h2>
+        <input type="month" id="hMonth" class="inline-input" style="width:auto">
+      </div>
+      <button type="button" class="btn ghost sm" id="csvBtn">CSVで保存（Excel用）</button>
+    </div>
+    <p class="small muted" style="margin:0 0 10px">行をタップすると日ごとの時刻が見られます。延長料金は「設定」の単価で計算しています。</p>
+    <div id="hBody"></div>
+  </section>
+
+  <!-- ========== 園児 ========== -->
+  <section class="screen" id="s-kids" hidden>
+    <div class="row" style="justify-content:space-between;margin-bottom:12px">
+      <h2>園児の名簿</h2>
+      <button type="button" class="btn sm" id="addKid">＋ 園児を追加</button>
+    </div>
+    <div id="kidList"></div>
+  </section>
+
+  <!-- ========== 設定 ========== -->
+  <section class="screen" id="s-settings" hidden>
+    <div class="panel">
+      <h2>保育時間と延長保育</h2>
+      <p class="small muted">この時間の外にいた分が「延長保育」になります。園児ごとに個別の時間を設定することもできます（園児 → 編集）。</p>
+      <div class="field"><span class="lbl">保育標準時間（11時間）</span>
+        <div class="pair"><input type="time" id="stdStart" aria-label="標準時間の開始"><input type="time" id="stdEnd" aria-label="標準時間の終了"></div></div>
+      <div class="field"><span class="lbl">保育短時間（8時間）</span>
+        <div class="pair"><input type="time" id="shortStart" aria-label="短時間の開始"><input type="time" id="shortEnd" aria-label="短時間の終了"></div></div>
+      <div class="pair">
+        <div class="field"><label for="unitMin">延長の単位（分）</label>
+          <select id="unitMin"><option value="10">10分</option><option value="15">15分</option><option value="30">30分</option><option value="60">60分</option></select></div>
+        <div class="field"><label for="feeUnit">1単位の料金（円）</label><input type="number" id="feeUnit" min="0" step="10" inputmode="numeric"></div>
+      </div>
+      <div class="field"><label for="grace">猶予（分）：この分数以内なら延長にしない</label><input type="number" id="grace" min="0" max="30" step="1" inputmode="numeric"></div>
+      <p class="small muted" id="feeExample"></p>
+    </div>
+    <div class="panel">
+      <h2>データの保存・引っこし</h2>
+      <p class="small muted">記録はこの端末のブラウザの中だけに保存され、どこにも送信されません。ブラウザのデータを消すと記録も消えるので、ときどきバックアップを保存してください。</p>
+      <div class="row">
+        <button type="button" class="btn ghost sm" id="backupBtn">バックアップを保存</button>
+        <label class="btn ghost sm" style="display:inline-flex;align-items:center">バックアップから復元<input type="file" id="restoreFile" accept="application/json,.json" hidden></label>
+      </div>
+    </div>
+    <div class="panel">
+      <h2>お試し・初期化</h2>
+      <div class="row">
+        <button type="button" class="btn ghost sm" id="sampleBtn">サンプルの園児を入れる</button>
+        <button type="button" class="btn danger sm" id="resetBtn">すべてのデータを消す</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<nav class="tabbar" aria-label="画面">
+  <div class="in">
+    <button type="button" data-tab="today" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>登降園</button>
+    <button type="button" data-tab="history"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>記録・延長</button>
+    <button type="button" data-tab="kids"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14c2.8 0 5 2 5 5"/></svg>園児</button>
+    <button type="button" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>設定</button>
+  </div>
+</nav>
+
+<!-- 記録の編集 -->
+<dialog id="dlgRec">
+  <form method="dialog" id="recForm">
+    <h2 id="recTitle"></h2>
+    <div class="sub" id="recSub"></div>
+    <div class="pair">
+      <div class="field"><label for="rIn">登園</label><input type="time" id="rIn"><button type="button" class="nowbtn" data-now="rIn">今の時刻</button></div>
+      <div class="field"><label for="rOut">退園</label><input type="time" id="rOut"><button type="button" class="nowbtn" data-now="rOut">今の時刻</button></div>
+    </div>
+    <label class="check"><input type="checkbox" id="rAbsent"> 欠席</label>
+    <div class="field"><label for="rPick">お迎えの人</label><input type="text" id="rPick" placeholder="例：母、祖母" maxlength="30"></div>
+    <div class="field"><label for="rNote">メモ</label><textarea id="rNote" maxlength="300" placeholder="連絡事項など"></textarea></div>
+    <p class="small" id="recErr" style="color:var(--absent)" hidden></p>
+    <div class="foot">
+      <button type="button" class="btn danger sm" id="recClear">記録を消す</button>
+      <div class="r">
+        <button type="button" class="btn ghost sm" value="cancel" id="recCancel">やめる</button>
+        <button type="submit" class="btn sm" value="ok">保存</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- 園児の編集 -->
+<dialog id="dlgKid">
+  <form method="dialog" id="kidForm">
+    <h2 id="kidTitle">園児を追加</h2>
+    <div class="sub">名前とクラスは必須です。</div>
+    <div class="field"><label for="kName">名前</label><input type="text" id="kName" required maxlength="30" autocomplete="off"></div>
+    <div class="field"><label for="kKana">ふりがな（並び順に使います）</label><input type="text" id="kKana" maxlength="40" autocomplete="off"></div>
+    <div class="field"><label for="kCls">クラス</label><input type="text" id="kCls" list="clsList" required maxlength="20" autocomplete="off" placeholder="例：0歳児 ひよこ組"><datalist id="clsList"></datalist></div>
+    <div class="field"><label for="kType">認定区分</label>
+      <select id="kType"><option value="std">保育標準時間</option><option value="short">保育短時間</option><option value="custom">個別に時間を決める</option></select></div>
+    <div class="field" id="kCustom" hidden><span class="lbl">この子の保育時間</span>
+      <div class="pair"><input type="time" id="kStart" aria-label="開始"><input type="time" id="kEnd" aria-label="終了"></div></div>
+    <label class="check"><input type="checkbox" id="kActive" checked> 在籍中（外すと登降園画面に出ません）</label>
+    <div class="foot">
+      <button type="button" class="btn danger sm" id="kidDelete" hidden>名簿から削除</button>
+      <div class="r">
+        <button type="button" class="btn ghost sm" id="kidCancel">やめる</button>
+        <button type="submit" class="btn sm">保存</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden><span id="toastMsg"></span><button type="button" id="toastUndo">取り消す</button></div>
+
+<script>
+(() => {
+'use strict';
+const KEY = 'wakanatsu-hoiku-v1';
+const DEF = { std: { start: '07:00', end: '18:00' }, short: { start: '08:30', end: '16:30' }, unit: 30, fee: 200, grace: 0 };
+const WD = ['日', '月', '火', '水', '木', '金', '土'];
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = (n) => String(n).padStart(2, '0');
+const keyOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const todayKey = () => keyOf(new Date());
+const parseKey = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+const toMin = (t) => { if (!t) return null; const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+const nowHM = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const nowMin = () => toMin(nowHM());
+const fmtDur = (m) => (m >= 60 ? `${Math.floor(m / 60)}時間${m % 60 ? (m % 60) + '分' : ''}` : `${m}分`);
+const yen = (n) => n.toLocaleString('ja-JP') + '円';
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const dayLabel = (k) => { const d = parseKey(k); return `${d.getMonth() + 1}月${d.getDate()}日(${WD[d.getDay()]})`; };
+
+/* ---------- storage ---------- */
+function blank() { return { children: [], records: {}, settings: JSON.parse(JSON.stringify(DEF)) }; }
+function normalize(r) {
+  if (!r || !Array.isArray(r.children)) return null;
+  const s = r.settings || {};
+  return {
+    children: r.children, records: r.records || {},
+    settings: { ...DEF, ...s, std: { ...DEF.std, ...(s.std || {}) }, short: { ...DEF.short, ...(s.short || {}) } },
+  };
+}
+function load() { try { return normalize(JSON.parse(localStorage.getItem(KEY))) || blank(); } catch (e) { return blank(); } }
+let S = load();
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); $('storeWarn').hidden = true; }
+  catch (e) { $('storeWarn').hidden = false; }
+}
+
+/* ---------- domain ---------- */
+function hoursOf(c) {
+  if (c.type === 'custom' && c.start && c.end) return { start: c.start, end: c.end, label: '個別' };
+  const t = c.type === 'short' ? 'short' : 'std';
+  return { ...S.settings[t], label: t === 'short' ? '短時間' : '標準' };
+}
+const rec = (k, id) => (S.records[k] || {})[id];
+function setRec(k, id, r) {
+  if (!S.records[k]) S.records[k] = {};
+  if (r) S.records[k][id] = r; else delete S.records[k][id];
+  if (!Object.keys(S.records[k]).length) delete S.records[k];
+  save();
+}
+function ext(c, r, k) {
+  const z = { before: 0, after: 0, units: 0, fee: 0, live: false };
+  if (!r || r.absent || !r.in) return z;
+  const h = hoursOf(c), g = +S.settings.grace || 0, u = +S.settings.unit || 30;
+  let before = Math.max(0, toMin(h.start) - toMin(r.in));
+  if (before <= g) before = 0;
+  const outM = r.out ? toMin(r.out) : (k === todayKey() ? nowMin() : null);
+  let after = outM == null ? 0 : Math.max(0, outM - toMin(h.end));
+  if (after <= g) after = 0;
+  const units = Math.ceil(before / u) + Math.ceil(after / u);
+  return { before, after, units, fee: units * (+S.settings.fee || 0), live: !r.out && after > 0 };
+}
+function status(c, r, k) {
+  if (!r) return 'none';
+  if (r.absent) return 'absent';
+  if (r.in && r.out) return 'out';
+  if (r.in) return ext(c, r, k).live ? 'ext' : 'in';
+  return 'none';
+}
+const ST_LABEL = { none: '未登園', in: '在園中', ext: '延長保育中', out: '退園済み', absent: '欠席' };
+const clsSort = (a, b) => a.localeCompare(b, 'ja', { numeric: true });
+const kidSort = (a, b) => clsSort(a.cls || '', b.cls || '') || (a.kana || a.name).localeCompare(b.kana || b.name, 'ja');
+const activeKids = () => S.children.filter((c) => c.active !== false).sort(kidSort);
+
+/* ---------- state ---------- */
+let cur = todayKey();
+let tab = 'today';
+let clsFilter = '';
+let query = '';
+
+/* ---------- toast ---------- */
+let toastTimer, undoFn;
+function toast(msg, undo) {
+  $('toastMsg').textContent = msg;
+  undoFn = undo || null;
+  $('toastUndo').hidden = !undo;
+  $('toast').hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { $('toast').hidden = true; undoFn = null; }, 5000);
+}
+$('toastUndo').addEventListener('click', () => { if (undoFn) undoFn(); $('toast').hidden = true; undoFn = null; });
+
+/* ---------- 今日 ---------- */
+function renderToday() {
+  const isToday = cur === todayKey();
+  $('dLabel').textContent = dayLabel(cur) + (isToday ? ' 今日' : '');
+  $('dToday').hidden = isToday;
+  $('pastNote').hidden = isToday;
+  $('dNext').disabled = isToday;
+  $('dNext').style.opacity = isToday ? .35 : 1;
+
+  const kids = activeKids();
+  const grid = $('kidGrid');
+  if (!kids.length) {
+    $('summary').innerHTML = ''; $('filters').innerHTML = '';
+    grid.innerHTML = `<div class="empty" style="grid-column:1/-1"><h2>園児が登録されていません</h2><p>まず「園児」から名前とクラスを登録してください。</p><div class="acts"><button type="button" class="btn" data-go="kids">園児を登録する</button><button type="button" class="btn ghost" data-sample>サンプルで試す</button></div></div>`;
+    return;
+  }
+  const cnt = { none: 0, in: 0, ext: 0, out: 0, absent: 0 };
+  kids.forEach((c) => cnt[status(c, rec(cur, c.id), cur)]++);
+  const came = cnt.in + cnt.ext + cnt.out;
+  $('summary').innerHTML = [
+    ['在籍', kids.length, 'hide-sm'], ['登園', came, ''], ['在園中', cnt.in + cnt.ext, 'in'], ['延長中', cnt.ext, 'ext'], ['欠席', cnt.absent, 'ab'],
+  ].map(([k, v, cl]) => `<div class="stat ${cl}"><div class="k">${k}</div><div class="v">${v}</div></div>`).join('');
+
+  const classes = [...new Set(kids.map((c) => c.cls))].sort(clsSort);
+  if (clsFilter && !classes.includes(clsFilter)) clsFilter = '';
+  $('filters').innerHTML = `<button type="button" class="chip" data-cls="" aria-pressed="${!clsFilter}">すべて</button>` +
+    classes.map((c) => `<button type="button" class="chip" data-cls="${esc(c)}" aria-pressed="${clsFilter === c}">${esc(c)}</button>`).join('') +
+    `<input type="search" class="search" id="q" placeholder="名前でさがす" value="${esc(query)}" aria-label="名前でさがす">`;
+  $('q').addEventListener('input', (e) => { query = e.target.value; renderCards(); });
+  renderCards();
+}
+function renderCards() {
+  const q = query.trim();
+  const kids = activeKids().filter((c) => (!clsFilter || c.cls === clsFilter) && (!q || c.name.includes(q) || (c.kana || '').includes(q)));
+  const isToday = cur === todayKey();
+  let html = '', lastCls = null;
+  kids.forEach((c) => {
+    if (c.cls !== lastCls) {
+      lastCls = c.cls;
+      const n = kids.filter((x) => x.cls === c.cls).length;
+      html += `<div class="clsHead">${esc(c.cls)} <span class="small">${n}人</span></div>`;
+    }
+    const r = rec(cur, c.id), st = status(c, r, cur), h = hoursOf(c), e = ext(c, r, cur);
+    let meta = `<span>保育時間 ${h.start}〜${h.end}（${h.label}）</span>`;
+    if (e.before || e.after) {
+      const parts = [];
+      if (e.before) parts.push(`朝 ${fmtDur(e.before)}`);
+      if (e.after) parts.push(`夕 ${fmtDur(e.after)}${e.live ? '（継続中）' : ''}`);
+      meta += `<span class="ext">延長 ${parts.join('・')} → ${e.units}単位 ${yen(e.fee)}</span>`;
+    }
+    if (!isToday && r && r.in && !r.out && !r.absent) meta += `<span class="warn">退園時刻が未記録</span>`;
+    let acts;
+    if (st === 'none') acts = `<button type="button" class="btn big" data-act="in">登園</button><button type="button" class="btn ghost" data-act="absent">欠席</button>`;
+    else if (st === 'in' || st === 'ext') acts = `<button type="button" class="btn big leave" data-act="out">退園</button><button type="button" class="btn ghost" data-act="edit">修正</button>`;
+    else if (st === 'absent') acts = `<button type="button" class="btn ghost big" data-act="unabsent">欠席を取り消す</button>`;
+    else acts = `<button type="button" class="btn ghost big" data-act="edit">記録を修正</button>`;
+    const extra = [r && r.pick ? `お迎え：${esc(r.pick)}` : '', r && r.note ? esc(r.note) : ''].filter(Boolean).join(' / ');
+    html += `<article class="kid st-${st}" data-id="${esc(c.id)}">
+      <div class="kid-top"><div><div class="kid-name">${esc(c.name)}</div><div class="kid-sub">${esc(c.kana || '')}</div></div><span class="badge">${ST_LABEL[st]}</span></div>
+      ${st === 'absent' ? '' : `<div class="times">
+        <button type="button" class="tcell" data-act="edit"><span class="k">登園</span><span class="v">${r && r.in ? r.in : '--:--'}</span></button>
+        <button type="button" class="tcell" data-act="edit"><span class="k">退園</span><span class="v">${r && r.out ? r.out : '--:--'}</span></button>
+      </div>`}
+      <div class="meta">${meta}</div>
+      ${extra ? `<div class="note">${extra}</div>` : ''}
+      <div class="acts">${acts}</div>
+    </article>`;
+  });
+  $('kidGrid').innerHTML = html || `<div class="empty" style="grid-column:1/-1"><p>該当する園児がいません。</p></div>`;
+}
+
+$('kidGrid').addEventListener('click', (ev) => {
+  const b = ev.target.closest('[data-act]');
+  if (!b) return;
+  const id = b.closest('.kid').dataset.id;
+  const c = S.children.find((x) => x.id === id);
+  const prev = rec(cur, id);
+  const before = prev ? { ...prev } : null;
+  const undo = () => { setRec(cur, id, before); renderToday(); };
+  const isToday = cur === todayKey();
+  switch (b.dataset.act) {
+    case 'in':
+      if (!isToday) return openRec(id, 'rIn');
+      setRec(cur, id, { ...(prev || {}), in: nowHM(), absent: false });
+      toast(`${c.name} さん 登園 ${nowHM()}`, undo); break;
+    case 'out':
+      if (!isToday) return openRec(id, 'rOut');
+      setRec(cur, id, { ...prev, out: nowHM() });
+      { const e = ext(c, rec(cur, id), cur); toast(`${c.name} さん 退園 ${nowHM()}${e.units ? `（延長 ${e.units}単位）` : ''}`, undo); }
+      break;
+    case 'absent':
+      setRec(cur, id, { ...(prev || {}), absent: true, in: '', out: '' });
+      toast(`${c.name} さん 欠席`, undo); break;
+    case 'unabsent':
+      setRec(cur, id, null); toast('欠席を取り消しました', undo); break;
+    case 'edit': return openRec(id);
+  }
+  renderToday();
+});
+$('filters').addEventListener('click', (e) => {
+  const b = e.target.closest('[data-cls]');
+  if (!b) return;
+  clsFilter = b.dataset.cls; renderToday();
+});
+function shiftDay(n) { const d = parseKey(cur); d.setDate(d.getDate() + n); const k = keyOf(d); if (k > todayKey()) return; cur = k; renderToday(); }
+$('dPrev').addEventListener('click', () => shiftDay(-1));
+$('dNext').addEventListener('click', () => shiftDay(1));
+$('dToday').addEventListener('click', () => { cur = todayKey(); renderToday(); });
+
+/* ---------- 記録ダイアログ ---------- */
+let editing = null;
+function openRec(id, focus) {
+  const c = S.children.find((x) => x.id === id);
+  const r = rec(cur, id) || {};
+  editing = id;
+  $('recTitle').textContent = c.name + ' さん';
+  const h = hoursOf(c);
+  $('recSub').textContent = `${dayLabel(cur)}・${c.cls}・保育時間 ${h.start}〜${h.end}`;
+  $('rIn').value = r.in || ''; $('rOut').value = r.out || '';
+  $('rAbsent').checked = !!r.absent; $('rPick').value = r.pick || ''; $('rNote').value = r.note || '';
+  document.querySelectorAll('[data-now]').forEach((b) => (b.hidden = cur !== todayKey()));
+  $('recErr').hidden = true;
+  $('dlgRec').showModal();
+  if (focus) setTimeout(() => $(focus).focus(), 50);
+}
+document.querySelectorAll('[data-now]').forEach((b) => b.addEventListener('click', () => { $(b.dataset.now).value = nowHM(); }));
+$('recCancel').addEventListener('click', () => $('dlgRec').close());
+$('recClear').addEventListener('click', () => {
+  if (!confirm('この日の記録を消しますか？')) return;
+  const before = rec(cur, editing); const id = editing;
+  setRec(cur, id, null); $('dlgRec').close(); renderAll();
+  toast('記録を消しました', () => { setRec(cur, id, before); renderAll(); });
+});
+$('recForm').addEventListener('submit', (e) => {
+  const inV = $('rIn').value, outV = $('rOut').value, absent = $('rAbsent').checked;
+  let err = '';
+  if (!absent && outV && !inV) err = '退園時刻だけでは保存できません。登園時刻も入れてください。';
+  else if (!absent && inV && outV && toMin(outV) < toMin(inV)) err = '退園時刻が登園時刻より前になっています。';
+  if (err) { e.preventDefault(); $('recErr').textContent = err; $('recErr').hidden = false; return; }
+  const r = { in: absent ? '' : inV, out: absent ? '' : outV, absent, pick: $('rPick').value.trim(), note: $('rNote').value.trim() };
+  const empty = !r.in && !r.out && !r.absent && !r.pick && !r.note;
+  setRec(cur, editing, empty ? null : r);
+  renderAll();
+});
+
+/* ---------- 記録・延長（月） ---------- */
+const openRows = new Set();
+function monthKeys(ym) {
+  const [y, m] = ym.split('-').map(Number);
+  const n = new Date(y, m, 0).getDate();
+  return Array.from({ length: n }, (_, i) => `${ym}-${pad(i + 1)}`);
+}
+function monthData(ym) {
+  const days = monthKeys(ym).filter((k) => S.records[k]);
+  const rows = S.children.slice().sort(kidSort).map((c) => {
+    const list = [];
+    days.forEach((k) => { const r = rec(k, c.id); if (r) list.push({ k, r, e: ext(c, r, k) }); });
+    const att = list.filter((x) => x.r.in && !x.r.absent);
+    const exts = list.filter((x) => x.e.units);
+    return {
+      c, list, att: att.length, absent: list.filter((x) => x.r.absent).length,
+      extCount: exts.length, extMin: exts.reduce((s, x) => s + x.e.before + x.e.after, 0),
+      units: exts.reduce((s, x) => s + x.e.units, 0), fee: exts.reduce((s, x) => s + x.e.fee, 0),
+    };
+  }).filter((r) => r.list.length || r.c.active !== false);
+  return rows;
+}
+function renderHistory() {
+  if (!$('hMonth').value) $('hMonth').value = todayKey().slice(0, 7);
+  const ym = $('hMonth').value;
+  const rows = monthData(ym);
+  if (!rows.length) { $('hBody').innerHTML = `<div class="empty"><p>この月の記録はまだありません。</p></div>`; return; }
+  const tot = rows.reduce((s, r) => ({ att: s.att + r.att, absent: s.absent + r.absent, extCount: s.extCount + r.extCount, extMin: s.extMin + r.extMin, units: s.units + r.units, fee: s.fee + r.fee }), { att: 0, absent: 0, extCount: 0, extMin: 0, units: 0, fee: 0 });
+  let html = `<div class="tablewrap"><table><thead><tr><th>クラス</th><th>名前</th><th class="r">登園</th><th class="r">欠席</th><th class="r">延長回数</th><th class="r">延長時間</th><th class="r">単位</th><th class="r">延長料金</th></tr></thead><tbody>`;
+  rows.forEach((r) => {
+    const open = openRows.has(r.c.id);
+    html += `<tr class="clickable" data-row="${esc(r.c.id)}"><td>${esc(r.c.cls)}</td><td>${open ? '▾' : '▸'} ${esc(r.c.name)}</td><td class="r num">${r.att}日</td><td class="r num">${r.absent}日</td><td class="r num">${r.extCount}回</td><td class="r num ${r.extMin ? 'ext-c' : ''}">${r.extMin ? fmtDur(r.extMin) : '—'}</td><td class="r num">${r.units}</td><td class="r num ${r.fee ? 'ext-c' : ''}">${r.fee ? yen(r.fee) : '—'}</td></tr>`;
+    if (open) {
+      html += `<tr class="detail"><td colspan="8"><table class="daylist"><thead><tr><th>日付</th><th>登園</th><th>退園</th><th class="r">延長(朝)</th><th class="r">延長(夕)</th><th class="r">料金</th><th>お迎え・メモ</th></tr></thead><tbody>` +
+        (r.list.length ? r.list.map((x) => `<tr><td>${dayLabel(x.k)}</td>${x.r.absent ? `<td colspan="5" style="color:var(--absent)">欠席</td>` : `<td class="num">${x.r.in || '—'}</td><td class="num">${x.r.out || (x.k === todayKey() ? '在園中' : '<span style="color:var(--absent)">未記録</span>')}</td><td class="r num">${x.e.before ? x.e.before + '分' : ''}</td><td class="r num">${x.e.after ? x.e.after + '分' : ''}</td><td class="r num ${x.e.fee ? 'ext-c' : ''}">${x.e.fee ? yen(x.e.fee) : ''}</td>`}<td style="white-space:normal">${esc([x.r.pick, x.r.note].filter(Boolean).join(' / '))}</td></tr>`).join('') : `<tr><td colspan="7" class="muted">記録なし</td></tr>`) +
+        `</tbody></table></td></tr>`;
+    }
+  });
+  html += `<tr class="sum"><td colspan="2">合計</td><td class="r num">${tot.att}日</td><td class="r num">${tot.absent}日</td><td class="r num">${tot.extCount}回</td><td class="r num">${tot.extMin ? fmtDur(tot.extMin) : '—'}</td><td class="r num">${tot.units}</td><td class="r num">${yen(tot.fee)}</td></tr></tbody></table></div>`;
+  $('hBody').innerHTML = html;
+}
+$('hMonth').addEventListener('change', renderHistory);
+$('hBody').addEventListener('click', (e) => {
+  const tr = e.target.closest('[data-row]');
+  if (!tr) return;
+  const id = tr.dataset.row;
+  openRows.has(id) ? openRows.delete(id) : openRows.add(id);
+  renderHistory();
+});
+function download(name, text, type) {
+  const blob = new Blob([text], { type });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+$('csvBtn').addEventListener('click', () => {
+  const ym = $('hMonth').value || todayKey().slice(0, 7);
+  const q = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const lines = [['日付', 'クラス', '名前', 'ふりがな', '認定', '登園', '退園', '欠席', '延長(朝)分', '延長(夕)分', '延長単位', '延長料金', 'お迎え', 'メモ'].map(q).join(',')];
+  monthData(ym).forEach((r) => r.list.forEach((x) => {
+    lines.push([x.k, r.c.cls, r.c.name, r.c.kana, hoursOf(r.c).label, x.r.in, x.r.out, x.r.absent ? '欠席' : '', x.e.before, x.e.after, x.e.units, x.e.fee, x.r.pick, x.r.note].map(q).join(','));
+  }));
+  lines.sort((a, b) => (a < b ? -1 : 1));
+  download(`若夏保育園_登降園_${ym}.csv`, '﻿' + lines.join('\r\n'), 'text/csv');
+});
+
+/* ---------- 園児 ---------- */
+function renderKids() {
+  const list = S.children.slice().sort(kidSort);
+  if (!list.length) {
+    $('kidList').innerHTML = `<div class="empty"><h2>まだ登録がありません</h2><p>「＋ 園児を追加」から登録します。</p><div class="acts"><button type="button" class="btn ghost" data-sample>サンプルで試す</button></div></div>`;
+    return;
+  }
+  const groups = {};
+  list.forEach((c) => (groups[c.cls] = groups[c.cls] || []).push(c));
+  $('kidList').innerHTML = Object.keys(groups).sort(clsSort).map((cls) => `<div class="panel"><h2>${esc(cls)} <span class="small muted">${groups[cls].filter((c) => c.active !== false).length}人</span></h2>` +
+    groups[cls].map((c) => { const h = hoursOf(c); return `<div class="kidrow"><div><span class="n">${esc(c.name)}</span>${c.active === false ? '<span class="tag">在籍外</span>' : ''}<div class="small muted">${esc(c.kana || '')} ・ ${h.label} ${h.start}〜${h.end}</div></div><button type="button" class="btn ghost sm" data-kid="${esc(c.id)}">編集</button></div>`; }).join('') + `</div>`).join('');
+}
+let kidEditing = null;
+function openKid(id) {
+  const c = id ? S.children.find((x) => x.id === id) : null;
+  kidEditing = id || null;
+  $('kidTitle').textContent = c ? '園児を編集' : '園児を追加';
+  $('kName').value = c ? c.name : ''; $('kKana').value = c ? c.kana || '' : '';
+  $('kCls').value = c ? c.cls : (clsFilter || '');
+  $('kType').value = c ? c.type || 'std' : 'std';
+  $('kStart').value = c && c.start ? c.start : S.settings.std.start;
+  $('kEnd').value = c && c.end ? c.end : S.settings.std.end;
+  $('kActive').checked = c ? c.active !== false : true;
+  $('kCustom').hidden = $('kType').value !== 'custom';
+  $('kidDelete').hidden = !c;
+  $('clsList').innerHTML = [...new Set(S.children.map((x) => x.cls))].sort(clsSort).map((x) => `<option value="${esc(x)}">`).join('');
+  $('dlgKid').showModal();
+}
+$('kType').addEventListener('change', () => { $('kCustom').hidden = $('kType').value !== 'custom'; });
+$('addKid').addEventListener('click', () => openKid());
+$('kidList').addEventListener('click', (e) => { const b = e.target.closest('[data-kid]'); if (b) openKid(b.dataset.kid); });
+$('kidCancel').addEventListener('click', () => $('dlgKid').close());
+$('kidForm').addEventListener('submit', () => {
+  const data = {
+    name: $('kName').value.trim(), kana: $('kKana').value.trim(), cls: $('kCls').value.trim(),
+    type: $('kType').value, start: $('kType').value === 'custom' ? $('kStart').value : '', end: $('kType').value === 'custom' ? $('kEnd').value : '',
+    active: $('kActive').checked,
+  };
+  if (kidEditing) Object.assign(S.children.find((x) => x.id === kidEditing), data);
+  else S.children.push({ id: uid(), ...data });
+  save(); renderAll();
+  if (!kidEditing) toast(`${data.name} さんを登録しました`);
+});
+$('kidDelete').addEventListener('click', () => {
+  const c = S.children.find((x) => x.id === kidEditing);
+  if (!confirm(`${c.name} さんを名簿から削除しますか？\nこれまでの登降園の記録も消えます。\n（卒園・退所の場合は「在籍中」のチェックを外すと記録を残せます）`)) return;
+  S.children = S.children.filter((x) => x.id !== c.id);
+  Object.keys(S.records).forEach((k) => { delete S.records[k][c.id]; if (!Object.keys(S.records[k]).length) delete S.records[k]; });
+  save(); $('dlgKid').close(); renderAll();
+});
+
+/* ---------- 設定 ---------- */
+function renderSettings() {
+  const s = S.settings;
+  $('stdStart').value = s.std.start; $('stdEnd').value = s.std.end;
+  $('shortStart').value = s.short.start; $('shortEnd').value = s.short.end;
+  $('unitMin').value = String(s.unit); $('feeUnit').value = s.fee; $('grace').value = s.grace;
+  $('feeExample').textContent = `例：標準時間の子が ${addMin(s.std.end, 40)} に退園 → 延長40分 → ${Math.ceil(40 / s.unit)}単位 × ${yen(+s.fee)} = ${yen(Math.ceil(40 / s.unit) * s.fee)}${s.grace >= 40 ? '（猶予内のため実際は0円）' : ''}`;
+}
+function addMin(t, m) { const v = toMin(t) + m; return `${pad(Math.floor(v / 60) % 24)}:${pad(v % 60)}`; }
+['stdStart', 'stdEnd', 'shortStart', 'shortEnd', 'unitMin', 'feeUnit', 'grace'].forEach((id) => $(id).addEventListener('change', () => {
+  const s = S.settings;
+  s.std = { start: $('stdStart').value || DEF.std.start, end: $('stdEnd').value || DEF.std.end };
+  s.short = { start: $('shortStart').value || DEF.short.start, end: $('shortEnd').value || DEF.short.end };
+  s.unit = +$('unitMin').value || 30;
+  s.fee = Math.max(0, +$('feeUnit').value || 0);
+  s.grace = Math.max(0, +$('grace').value || 0);
+  save(); renderSettings(); toast('設定を保存しました');
+}));
+$('backupBtn').addEventListener('click', () => download(`若夏保育園_バックアップ_${todayKey()}.json`, JSON.stringify(S, null, 1), 'application/json'));
+$('restoreFile').addEventListener('change', async (e) => {
+  const f = e.target.files[0]; e.target.value = '';
+  if (!f) return;
+  try {
+    const d = normalize(JSON.parse(await f.text()));
+    if (!d) throw new Error('bad');
+    if (!confirm(`バックアップ（園児 ${d.children.length}人・${Object.keys(d.records).length}日分）で今のデータを置き換えますか？`)) return;
+    S = d; save(); renderAll(); toast('復元しました');
+  } catch (err) { alert('このファイルは読み込めませんでした。このアプリで保存したバックアップを選んでください。'); }
+});
+function addSample() {
+  const names = [
+    ['0歳児 ひよこ組', 'あおい', 'あおい', 'std'], ['0歳児 ひよこ組', 'はると', 'はると', 'short'],
+    ['1歳児 りす組', 'ゆい', 'ゆい', 'std'], ['1歳児 りす組', 'そうた', 'そうた', 'std'],
+    ['2歳児 うさぎ組', 'めい', 'めい', 'short'], ['3歳児 ぱんだ組', 'りく', 'りく', 'std'],
+    ['4歳児 きりん組', 'さくら', 'さくら', 'std'], ['5歳児 ぞう組', 'たいが', 'たいが', 'std'],
+  ];
+  names.forEach(([cls, name, kana, type]) => S.children.push({ id: uid(), name: name + '（見本）', kana, cls, type, active: true }));
+  save(); renderAll(); toast('サンプルの園児を入れました。不要になったら園児画面から削除できます');
+}
+document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-sample]')) addSample();
+  const g = e.target.closest('[data-go]'); if (g) go(g.dataset.go);
+});
+$('sampleBtn').addEventListener('click', addSample);
+$('resetBtn').addEventListener('click', () => {
+  if (!confirm('園児の名簿・すべての記録・設定を消します。元に戻せません。よろしいですか？')) return;
+  S = blank(); save(); renderAll(); toast('すべてのデータを消しました');
+});
+
+/* ---------- tabs / clock ---------- */
+function go(t) {
+  tab = t;
+  ['today', 'history', 'kids', 'settings'].forEach((x) => { $('s-' + x).hidden = x !== t; });
+  document.querySelectorAll('.tabbar [data-tab]').forEach((b) => { if (b.dataset.tab === t) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  renderAll(); window.scrollTo(0, 0);
+}
+document.querySelectorAll('.tabbar [data-tab]').forEach((b) => b.addEventListener('click', () => go(b.dataset.tab)));
+function renderAll() {
+  if (tab === 'today') renderToday();
+  else if (tab === 'history') renderHistory();
+  else if (tab === 'kids') renderKids();
+  else renderSettings();
+}
+let lastDay = todayKey();
+function tick() {
+  $('clock').textContent = nowHM();
+  const t = todayKey();
+  if (t !== lastDay) { if (cur === lastDay) cur = t; lastDay = t; }
+  if (tab === 'today' && !document.querySelector('dialog[open]') && document.activeElement?.id !== 'q') renderToday();
+}
+tick(); setInterval(tick, 30000);
+try { localStorage.setItem(KEY + '-t', '1'); localStorage.removeItem(KEY + '-t'); } catch (e) { $('storeWarn').hidden = false; }
+renderAll();
+})();
+</script>
+</body>
+</html>
