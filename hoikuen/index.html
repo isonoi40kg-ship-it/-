@@ -176,7 +176,7 @@ dialog .sub { font-size: .85rem; color: var(--muted); margin-bottom: 14px; }
 dialog .foot { display: flex; gap: 8px; justify-content: space-between; flex-wrap: wrap; margin-top: 6px; }
 dialog .foot .r { display: flex; gap: 8px; margin-left: auto; }
 .nowbtn { border: 1px solid var(--line-strong); background: transparent; border-radius: 8px; padding: 2px 8px; font-size: .8rem; align-self: flex-start; }
-.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tabbar) + 14px + env(safe-area-inset-bottom, 0px)); z-index: 20; background: var(--ink); color: var(--bg); border-radius: 14px; padding: 10px 12px 10px 16px; display: flex; gap: 12px; align-items: center; max-width: calc(100vw - 32px); box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+.toast { position: fixed; left: 50%; width: max-content; transform: translateX(-50%); bottom: calc(var(--tabbar) + 14px + env(safe-area-inset-bottom, 0px)); z-index: 20; background: var(--ink); color: var(--bg); border-radius: 14px; padding: 10px 12px 10px 16px; display: flex; gap: 12px; align-items: center; max-width: calc(100vw - 32px); box-shadow: 0 8px 24px rgba(0,0,0,.25); }
 .toast button { white-space: nowrap; flex: none; border: 0; background: transparent; color: var(--brand-soft); font-weight: 700; padding: 6px 8px; text-decoration: underline; }
 .banner { background: var(--absent-soft); color: var(--absent); border-radius: 12px; padding: 10px 14px; margin-top: 12px; font-size: .9rem; }
 </style>
@@ -231,7 +231,18 @@ dialog .foot .r { display: flex; gap: 8px; margin-left: auto; }
   <!-- ========== 設定 ========== -->
   <section class="screen" id="s-settings" hidden>
     <div class="panel">
-      <h2>保育時間と延長保育</h2>
+      <h2>開園時間と延長保育</h2>
+      <div class="field"><span class="lbl">開園・閉園</span>
+        <div class="pair"><input type="time" id="openT" aria-label="開園"><input type="time" id="closeT" aria-label="閉園"></div></div>
+      <div class="field"><label for="feeMode">延長料金の計算方法</label>
+        <select id="feeMode"><option value="flat">一律料金（決まった時刻を過ぎて降園したら定額）</option><option value="unit">時間に応じて（単位ごとに加算）</option></select></div>
+      <div id="flatBox">
+        <div class="pair">
+          <div class="field"><label for="extFrom">この時刻を過ぎたら延長</label><input type="time" id="extFrom"></div>
+          <div class="field"><label for="flatFee">延長料金（円・一律）</label><input type="number" id="flatFee" min="0" step="10" inputmode="numeric"></div>
+        </div>
+      </div>
+      <div id="unitBox">
       <p class="small muted">この時間の外にいた分が「延長保育」になります。園児ごとに個別の時間を設定することもできます（園児 → 編集）。</p>
       <div class="field"><span class="lbl">保育標準時間（11時間）</span>
         <div class="pair"><input type="time" id="stdStart" aria-label="標準時間の開始"><input type="time" id="stdEnd" aria-label="標準時間の終了"></div></div>
@@ -243,7 +254,12 @@ dialog .foot .r { display: flex; gap: 8px; margin-left: auto; }
         <div class="field"><label for="feeUnit">1単位の料金（円）</label><input type="number" id="feeUnit" min="0" step="10" inputmode="numeric"></div>
       </div>
       <div class="field"><label for="grace">猶予（分）：この分数以内なら延長にしない</label><input type="number" id="grace" min="0" max="30" step="1" inputmode="numeric"></div>
+      </div>
       <p class="small muted" id="feeExample"></p>
+    </div>
+    <div class="panel">
+      <h2>クラス</h2>
+      <div class="field"><label for="classesT">1行に1クラス（この順に並びます）</label><textarea id="classesT" rows="5"></textarea></div>
     </div>
     <div class="panel">
       <h2>データの保存・引っこし</h2>
@@ -302,7 +318,7 @@ dialog .foot .r { display: flex; gap: 8px; margin-left: auto; }
     <div class="sub">名前とクラスは必須です。</div>
     <div class="field"><label for="kName">名前</label><input type="text" id="kName" required maxlength="30" autocomplete="off"></div>
     <div class="field"><label for="kKana">ふりがな（並び順に使います）</label><input type="text" id="kKana" maxlength="40" autocomplete="off"></div>
-    <div class="field"><label for="kCls">クラス</label><input type="text" id="kCls" list="clsList" required maxlength="20" autocomplete="off" placeholder="例：0歳児 ひよこ組"><datalist id="clsList"></datalist></div>
+    <div class="field"><label for="kCls">クラス</label><input type="text" id="kCls" list="clsList" required maxlength="20" autocomplete="off" placeholder="例：さくら組"><datalist id="clsList"></datalist></div>
     <div class="field"><label for="kType">認定区分</label>
       <select id="kType"><option value="std">保育標準時間</option><option value="short">保育短時間</option><option value="custom">個別に時間を決める</option></select></div>
     <div class="field" id="kCustom" hidden><span class="lbl">この子の保育時間</span>
@@ -324,7 +340,7 @@ dialog .foot .r { display: flex; gap: 8px; margin-left: auto; }
 (() => {
 'use strict';
 const KEY = 'wakanatsu-hoiku-v1';
-const DEF = { std: { start: '07:00', end: '18:00' }, short: { start: '08:30', end: '16:30' }, unit: 30, fee: 200, grace: 0 };
+const DEF = { open: '07:00', close: '19:00', feeMode: 'flat', extFrom: '18:15', flatFee: 300, classes: ['さくら組', 'さくらんぼ組', 'たんぽぽ組', 'ばら組', 'ひまわり組'], std: { start: '07:00', end: '18:00' }, short: { start: '08:30', end: '16:30' }, unit: 30, fee: 200, grace: 0 };
 const WD = ['日', '月', '火', '水', '木', '金', '土'];
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -335,6 +351,10 @@ const parseKey = (k) => { const [y, m, d] = k.split('-').map(Number); return new
 const toMin = (t) => { if (!t) return null; const [h, m] = t.split(':').map(Number); return h * 60 + m; };
 const nowHM = () => { const d = new Date(); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
 const nowMin = () => toMin(nowHM());
+const toSec = (t) => { if (!t) return null; const [h, m, x] = t.split(':').map(Number); return h * 3600 + m * 60 + (x || 0); };
+const nowHMS = () => { const d = new Date(); return `${nowHM()}:${pad(d.getSeconds())}`; };
+const nowSec = () => toSec(nowHMS());
+const hm = (t) => (t ? t.slice(0, 5) : '');
 const fmtDur = (m) => (m >= 60 ? `${Math.floor(m / 60)}時間${m % 60 ? (m % 60) + '分' : ''}` : `${m}分`);
 const yen = (n) => n.toLocaleString('ja-JP') + '円';
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
@@ -373,6 +393,12 @@ function setRec(k, id, r) {
 function ext(c, r, k) {
   const z = { before: 0, after: 0, units: 0, fee: 0, live: false };
   if (!r || r.absent || !r.in) return z;
+  if (S.settings.feeMode === 'flat') {
+    const from = toSec(S.settings.extFrom);
+    const outS = r.out ? toSec(r.out) : (k === todayKey() ? nowSec() : null);
+    if (outS == null || outS <= from) return z;
+    return { before: 0, after: Math.max(1, Math.floor((outS - from) / 60)), units: 1, fee: +S.settings.flatFee || 0, live: !r.out, flat: true };
+  }
   const h = hoursOf(c), g = +S.settings.grace || 0, u = +S.settings.unit || 30;
   let before = Math.max(0, toMin(h.start) - toMin(r.in));
   if (before <= g) before = 0;
@@ -390,7 +416,8 @@ function status(c, r, k) {
   return 'none';
 }
 const ST_LABEL = { none: '未登園', in: '在園中', ext: '延長保育中', out: '退園済み', absent: '欠席' };
-const clsSort = (a, b) => a.localeCompare(b, 'ja', { numeric: true });
+const clsIdx = (c) => { const i = (S.settings.classes || []).indexOf(c); return i < 0 ? 999 : i; };
+const clsSort = (a, b) => clsIdx(a) - clsIdx(b) || a.localeCompare(b, 'ja', { numeric: true });
 const kidSort = (a, b) => clsSort(a.cls || '', b.cls || '') || (a.kana || a.name).localeCompare(b.kana || b.name, 'ja');
 const activeKids = () => S.children.filter((c) => c.active !== false).sort(kidSort);
 
@@ -455,14 +482,18 @@ function renderCards() {
       html += `<div class="clsHead">${esc(c.cls)} <span class="small">${n}人</span></div>`;
     }
     const r = rec(cur, c.id), st = status(c, r, cur), h = hoursOf(c), e = ext(c, r, cur);
-    let meta = `<span>保育時間 ${h.start}〜${h.end}（${h.label}）</span>`;
-    if (e.before || e.after) {
+    const flat = S.settings.feeMode === 'flat';
+    let meta = flat ? `<span>開園 ${S.settings.open}〜${S.settings.close}・${S.settings.extFrom}を過ぎて降園で延長</span>` : `<span>保育時間 ${h.start}〜${h.end}（${h.label}）</span>`;
+    if (flat && e.fee) meta += `<span class="ext">延長保育${e.live ? '中' : ''}（${S.settings.extFrom}から${fmtDur(e.after)}）→ ${yen(e.fee)}</span>`;
+    else if (e.before || e.after) {
       const parts = [];
       if (e.before) parts.push(`朝 ${fmtDur(e.before)}`);
       if (e.after) parts.push(`夕 ${fmtDur(e.after)}${e.live ? '（継続中）' : ''}`);
       meta += `<span class="ext">延長 ${parts.join('・')} → ${e.units}単位 ${yen(e.fee)}</span>`;
     }
     if (!isToday && r && r.in && !r.out && !r.absent) meta += `<span class="warn">退園時刻が未記録</span>`;
+    const lastT = r && r.in && !r.absent ? (r.out || (isToday ? nowHMS() : '')) : '';
+    if (lastT && toSec(lastT) > toSec(S.settings.close)) meta += `<span class="warn">閉園時刻（${S.settings.close}）を過ぎています</span>`;
     let acts;
     if (st === 'none') acts = `<button type="button" class="btn big" data-act="in">登園</button><button type="button" class="btn ghost" data-act="absent">欠席</button>`;
     else if (st === 'in' || st === 'ext') acts = `<button type="button" class="btn big leave" data-act="out">退園</button><button type="button" class="btn ghost" data-act="edit">修正</button>`;
@@ -472,8 +503,8 @@ function renderCards() {
     html += `<article class="kid st-${st}" data-id="${esc(c.id)}">
       <div class="kid-top"><div><div class="kid-name">${esc(c.name)}</div><div class="kid-sub">${esc(c.kana || '')}</div></div><span class="badge">${ST_LABEL[st]}</span></div>
       ${st === 'absent' ? '' : `<div class="times">
-        <button type="button" class="tcell" data-act="edit"><span class="k">登園</span><span class="v">${r && r.in ? r.in : '--:--'}</span></button>
-        <button type="button" class="tcell" data-act="edit"><span class="k">退園</span><span class="v">${r && r.out ? r.out : '--:--'}</span></button>
+        <button type="button" class="tcell" data-act="edit"><span class="k">登園</span><span class="v">${r && r.in ? hm(r.in) : '--:--'}</span></button>
+        <button type="button" class="tcell" data-act="edit"><span class="k">退園</span><span class="v">${r && r.out ? hm(r.out) : '--:--'}</span></button>
       </div>`}
       <div class="meta">${meta}</div>
       ${extra ? `<div class="note">${extra}</div>` : ''}
@@ -499,8 +530,8 @@ $('kidGrid').addEventListener('click', (ev) => {
       toast(`${c.name} さん 登園 ${nowHM()}`, undo); break;
     case 'out':
       if (!isToday) return openRec(id, 'rOut');
-      setRec(cur, id, { ...prev, out: nowHM() });
-      { const e = ext(c, rec(cur, id), cur); toast(`${c.name} さん 退園 ${nowHM()}${e.units ? `（延長 ${e.units}単位）` : ''}`, undo); }
+      setRec(cur, id, { ...prev, out: nowHMS() });
+      { const e = ext(c, rec(cur, id), cur); toast(`${c.name} さん 退園 ${nowHM()}${e.fee ? `（延長料金 ${yen(e.fee)}）` : ''}`, undo); }
       break;
     case 'absent':
       setRec(cur, id, { ...(prev || {}), absent: true, in: '', out: '' });
@@ -530,7 +561,7 @@ function openRec(id, focus) {
   $('recTitle').textContent = c.name + ' さん';
   const h = hoursOf(c);
   $('recSub').textContent = `${dayLabel(cur)}・${c.cls}・保育時間 ${h.start}〜${h.end}`;
-  $('rIn').value = r.in || ''; $('rOut').value = r.out || '';
+  $('rIn').value = hm(r.in); $('rOut').value = hm(r.out);
   $('rAbsent').checked = !!r.absent; $('rPick').value = r.pick || ''; $('rNote').value = r.note || '';
   document.querySelectorAll('[data-now]').forEach((b) => (b.hidden = cur !== todayKey()));
   $('recErr').hidden = true;
@@ -551,7 +582,9 @@ $('recForm').addEventListener('submit', (e) => {
   if (!absent && outV && !inV) err = '退園時刻だけでは保存できません。登園時刻も入れてください。';
   else if (!absent && inV && outV && toMin(outV) < toMin(inV)) err = '退園時刻が登園時刻より前になっています。';
   if (err) { e.preventDefault(); $('recErr').textContent = err; $('recErr').hidden = false; return; }
-  const r = { in: absent ? '' : inV, out: absent ? '' : outV, absent, pick: $('rPick').value.trim(), note: $('rNote').value.trim() };
+  const old = rec(cur, editing) || {};
+  const keep = (v, o) => (v && o && hm(o) === v ? o : v);
+  const r = { in: absent ? '' : keep(inV, old.in), out: absent ? '' : keep(outV, old.out), absent, pick: $('rPick').value.trim(), note: $('rNote').value.trim() };
   const empty = !r.in && !r.out && !r.absent && !r.pick && !r.note;
   setRec(cur, editing, empty ? null : r);
   renderAll();
@@ -591,7 +624,7 @@ function renderHistory() {
     html += `<tr class="clickable" data-row="${esc(r.c.id)}"><td>${esc(r.c.cls)}</td><td>${open ? '▾' : '▸'} ${esc(r.c.name)}</td><td class="r num">${r.att}日</td><td class="r num">${r.absent}日</td><td class="r num">${r.extCount}回</td><td class="r num ${r.extMin ? 'ext-c' : ''}">${r.extMin ? fmtDur(r.extMin) : '—'}</td><td class="r num">${r.units}</td><td class="r num ${r.fee ? 'ext-c' : ''}">${r.fee ? yen(r.fee) : '—'}</td></tr>`;
     if (open) {
       html += `<tr class="detail"><td colspan="8"><table class="daylist"><thead><tr><th>日付</th><th>登園</th><th>退園</th><th class="r">延長(朝)</th><th class="r">延長(夕)</th><th class="r">料金</th><th>お迎え・メモ</th></tr></thead><tbody>` +
-        (r.list.length ? r.list.map((x) => `<tr><td>${dayLabel(x.k)}</td>${x.r.absent ? `<td colspan="5" style="color:var(--absent)">欠席</td>` : `<td class="num">${x.r.in || '—'}</td><td class="num">${x.r.out || (x.k === todayKey() ? '在園中' : '<span style="color:var(--absent)">未記録</span>')}</td><td class="r num">${x.e.before ? x.e.before + '分' : ''}</td><td class="r num">${x.e.after ? x.e.after + '分' : ''}</td><td class="r num ${x.e.fee ? 'ext-c' : ''}">${x.e.fee ? yen(x.e.fee) : ''}</td>`}<td style="white-space:normal">${esc([x.r.pick, x.r.note].filter(Boolean).join(' / '))}</td></tr>`).join('') : `<tr><td colspan="7" class="muted">記録なし</td></tr>`) +
+        (r.list.length ? r.list.map((x) => `<tr><td>${dayLabel(x.k)}</td>${x.r.absent ? `<td colspan="5" style="color:var(--absent)">欠席</td>` : `<td class="num">${hm(x.r.in) || '—'}</td><td class="num">${hm(x.r.out) || (x.k === todayKey() ? '在園中' : '<span style="color:var(--absent)">未記録</span>')}</td><td class="r num">${x.e.before ? x.e.before + '分' : ''}</td><td class="r num">${x.e.after ? x.e.after + '分' : ''}</td><td class="r num ${x.e.fee ? 'ext-c' : ''}">${x.e.fee ? yen(x.e.fee) : ''}</td>`}<td style="white-space:normal">${esc([x.r.pick, x.r.note].filter(Boolean).join(' / '))}</td></tr>`).join('') : `<tr><td colspan="7" class="muted">記録なし</td></tr>`) +
         `</tbody></table></td></tr>`;
     }
   });
@@ -649,7 +682,7 @@ function openKid(id) {
   $('kActive').checked = c ? c.active !== false : true;
   $('kCustom').hidden = $('kType').value !== 'custom';
   $('kidDelete').hidden = !c;
-  $('clsList').innerHTML = [...new Set(S.children.map((x) => x.cls))].sort(clsSort).map((x) => `<option value="${esc(x)}">`).join('');
+  $('clsList').innerHTML = [...new Set([...(S.settings.classes || []), ...S.children.map((x) => x.cls)])].sort(clsSort).map((x) => `<option value="${esc(x)}">`).join('');
   $('dlgKid').showModal();
 }
 $('kType').addEventListener('change', () => { $('kCustom').hidden = $('kType').value !== 'custom'; });
@@ -678,19 +711,30 @@ $('kidDelete').addEventListener('click', () => {
 /* ---------- 設定 ---------- */
 function renderSettings() {
   const s = S.settings;
+  $('openT').value = s.open; $('closeT').value = s.close; $('feeMode').value = s.feeMode;
+  $('extFrom').value = s.extFrom; $('flatFee').value = s.flatFee;
+  if (document.activeElement !== $('classesT')) $('classesT').value = (s.classes || []).join('\n');
+  $('flatBox').hidden = s.feeMode !== 'flat'; $('unitBox').hidden = s.feeMode === 'flat';
   $('stdStart').value = s.std.start; $('stdEnd').value = s.std.end;
   $('shortStart').value = s.short.start; $('shortEnd').value = s.short.end;
   $('unitMin').value = String(s.unit); $('feeUnit').value = s.fee; $('grace').value = s.grace;
-  $('feeExample').textContent = `例：標準時間の子が ${addMin(s.std.end, 40)} に退園 → 延長40分 → ${Math.ceil(40 / s.unit)}単位 × ${yen(+s.fee)} = ${yen(Math.ceil(40 / s.unit) * s.fee)}${s.grace >= 40 ? '（猶予内のため実際は0円）' : ''}`;
+  $('feeExample').textContent = s.feeMode === 'flat'
+    ? `例：${s.extFrom}:00 までに降園 → 0円 ／ ${s.extFrom}:01 以降に降園 → 一律 ${yen(+s.flatFee)}（閉園 ${s.close} 以降も同じ）`
+    : `例：標準時間の子が ${addMin(s.std.end, 40)} に退園 → 延長40分 → ${Math.ceil(40 / s.unit)}単位 × ${yen(+s.fee)} = ${yen(Math.ceil(40 / s.unit) * s.fee)}${s.grace >= 40 ? '（猶予内のため実際は0円）' : ''}`;
 }
 function addMin(t, m) { const v = toMin(t) + m; return `${pad(Math.floor(v / 60) % 24)}:${pad(v % 60)}`; }
-['stdStart', 'stdEnd', 'shortStart', 'shortEnd', 'unitMin', 'feeUnit', 'grace'].forEach((id) => $(id).addEventListener('change', () => {
+['openT', 'closeT', 'feeMode', 'extFrom', 'flatFee', 'classesT', 'stdStart', 'stdEnd', 'shortStart', 'shortEnd', 'unitMin', 'feeUnit', 'grace'].forEach((id) => $(id).addEventListener('change', () => {
   const s = S.settings;
   s.std = { start: $('stdStart').value || DEF.std.start, end: $('stdEnd').value || DEF.std.end };
   s.short = { start: $('shortStart').value || DEF.short.start, end: $('shortEnd').value || DEF.short.end };
   s.unit = +$('unitMin').value || 30;
   s.fee = Math.max(0, +$('feeUnit').value || 0);
   s.grace = Math.max(0, +$('grace').value || 0);
+  s.open = $('openT').value || DEF.open; s.close = $('closeT').value || DEF.close;
+  s.feeMode = $('feeMode').value === 'unit' ? 'unit' : 'flat';
+  s.extFrom = $('extFrom').value || DEF.extFrom;
+  s.flatFee = Math.max(0, +$('flatFee').value || 0);
+  s.classes = [...new Set($('classesT').value.split('\n').map((x) => x.trim()).filter(Boolean))];
   save(); renderSettings(); toast('設定を保存しました');
 }));
 $('backupBtn').addEventListener('click', () => download(`若夏保育園_バックアップ_${todayKey()}.json`, JSON.stringify(S, null, 1), 'application/json'));
@@ -706,10 +750,10 @@ $('restoreFile').addEventListener('change', async (e) => {
 });
 function addSample() {
   const names = [
-    ['0歳児 ひよこ組', 'あおい', 'あおい', 'std'], ['0歳児 ひよこ組', 'はると', 'はると', 'short'],
-    ['1歳児 りす組', 'ゆい', 'ゆい', 'std'], ['1歳児 りす組', 'そうた', 'そうた', 'std'],
-    ['2歳児 うさぎ組', 'めい', 'めい', 'short'], ['3歳児 ぱんだ組', 'りく', 'りく', 'std'],
-    ['4歳児 きりん組', 'さくら', 'さくら', 'std'], ['5歳児 ぞう組', 'たいが', 'たいが', 'std'],
+    ['さくら組', 'あおい', 'あおい', 'std'], ['さくら組', 'はると', 'はると', 'std'],
+    ['さくらんぼ組', 'ゆい', 'ゆい', 'std'], ['さくらんぼ組', 'そうた', 'そうた', 'std'],
+    ['たんぽぽ組', 'めい', 'めい', 'std'], ['ばら組', 'りく', 'りく', 'std'],
+    ['ばら組', 'こはる', 'こはる', 'std'], ['ひまわり組', 'たいが', 'たいが', 'std'],
   ];
   names.forEach(([cls, name, kana, type]) => S.children.push({ id: uid(), name: name + '（見本）', kana, cls, type, active: true }));
   save(); renderAll(); toast('サンプルの園児を入れました。不要になったら園児画面から削除できます');
