@@ -1,0 +1,1175 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="若夏保育園の延長保育の記録を写真から読み取り、月統計・個人請求・領収証と控え・月一覧を作るアプリ。">
+<meta name="theme-color" content="#2f8a4e">
+<title>若夏保育園 延長保育の帳票</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@500;700;900&family=BIZ+UDPGothic:wght@400;700&family=BIZ+UDGothic:wght@400;700&display=swap">
+<style>
+:root {
+  --bg: #f3f6ef; --paper: #ffffff; --ink: #1f2a22; --muted: #5d6a60;
+  --line: #dde5d8; --line-strong: #b6c4b1;
+  --brand: #2f8a4e; --brand-ink: #ffffff; --brand-soft: #dcefe0;
+  --sun: #c8701a; --sun-soft: #fdead3;
+  --leave: #3b67a8; --leave-soft: #dde7f5;
+  --absent: #b0436b; --absent-soft: #f6dee7;
+  --idle: #8d998f; --idle-soft: #eceff0;
+  --f-display: "Zen Maru Gothic", "Hiragino Maru Gothic ProN", "BIZ UDPGothic", sans-serif;
+  --f-body: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", "Meiryo", sans-serif;
+  --f-num: "BIZ UDGothic", "Hiragino Sans", ui-monospace, monospace;
+  --tabbar: 64px;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #111a14; --paper: #19241c; --ink: #e6eee7;
+    --muted: #a0aea3; --line: #2a3a2e; --line-strong: #41574a;
+    --brand: #5cc282; --brand-ink: #0d1a11; --brand-soft: #1f3a27;
+    --sun: #f0a456; --sun-soft: #3d2c18;
+    --leave: #82aaf0; --leave-soft: #1f2d45;
+    --absent: #e07ba0; --absent-soft: #3e1f2b;
+    --idle: #7c8a80; --idle-soft: #232d26;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111a14; --paper: #19241c; --ink: #e6eee7; --muted: #a0aea3;
+  --line: #2a3a2e; --line-strong: #41574a;
+  --brand: #5cc282; --brand-ink: #0d1a11; --brand-soft: #1f3a27;
+  --sun: #f0a456; --sun-soft: #3d2c18;
+  --leave: #82aaf0; --leave-soft: #1f2d45;
+  --absent: #e07ba0; --absent-soft: #3e1f2b;
+  --idle: #7c8a80; --idle-soft: #232d26;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--f-body); font-size: 16px; line-height: 1.6; -webkit-tap-highlight-color: transparent; }
+h1, h2, h3 { font-family: var(--f-display); margin: 0; line-height: 1.35; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+.num { font-family: var(--f-num); font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.small { font-size: .85rem; }
+
+/* ---------- layout ---------- */
+.app { max-width: 1120px; margin: 0 auto; padding: 0 16px calc(var(--tabbar) + 24px + env(safe-area-inset-bottom, 0px)); }
+.topbar { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: calc(10px + env(safe-area-inset-top, 0px)) 0 10px; display: flex; align-items: center; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--line); }
+.brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand svg { flex: none; }
+.brand h1 { font-size: 1.2rem; font-weight: 900; white-space: nowrap; }
+.brand .sub { font-size: .78rem; color: var(--muted); white-space: nowrap; }
+.clock { font-family: var(--f-num); font-size: 1.5rem; font-weight: 700; letter-spacing: .02em; }
+.screen { padding-top: 14px; }
+.screen h2 { font-size: 1.15rem; font-weight: 700; }
+
+/* ---------- day nav ---------- */
+.daynav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+.daynav .d { font-family: var(--f-display); font-size: 1.25rem; font-weight: 700; }
+.iconbtn { width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line-strong); background: var(--paper); font-size: 1.3rem; line-height: 1; }
+.pastnote { font-size: .82rem; color: var(--sun); background: var(--sun-soft); border-radius: 8px; padding: 2px 8px; }
+
+/* ---------- summary ---------- */
+.summary { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+.stat { background: var(--paper); border: 1px solid var(--line); border-radius: 14px; padding: 8px 10px; }
+.stat .k { font-size: .75rem; color: var(--muted); }
+.stat .v { font-family: var(--f-num); font-size: 1.5rem; font-weight: 700; line-height: 1.2; }
+.stat.in .v { color: var(--brand); }
+.stat.ext .v { color: var(--sun); }
+.stat.ab .v { color: var(--absent); }
+@media (max-width: 520px) { .summary { grid-template-columns: repeat(3, minmax(0, 1fr)); } .stat.hide-sm { display: none; } }
+
+/* ---------- filters ---------- */
+.filters { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 14px; }
+.chip { border: 1px solid var(--line-strong); background: var(--paper); border-radius: 999px; padding: 6px 14px; font-size: .9rem; min-height: 36px; }
+.chip[aria-pressed="true"] { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); font-weight: 700; }
+.search { flex: 1 1 160px; min-width: 0; max-width: 260px; border: 1px solid var(--line-strong); background: var(--paper); border-radius: 999px; padding: 6px 14px; min-height: 36px; }
+
+/* ---------- kid cards ---------- */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 12px; }
+.clsHead { grid-column: 1 / -1; font-family: var(--f-display); font-weight: 700; color: var(--muted); font-size: .95rem; margin-top: 6px; display: flex; gap: 8px; align-items: baseline; }
+.kid { background: var(--paper); border: 1px solid var(--line); border-left: 6px solid var(--idle); border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.kid.st-in { border-left-color: var(--brand); }
+.kid.st-ext { border-left-color: var(--sun); }
+.kid.st-out { border-left-color: var(--leave); }
+.kid.st-absent { border-left-color: var(--absent); opacity: .85; }
+.kid-top { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.kid-name { font-family: var(--f-display); font-size: 1.2rem; font-weight: 700; line-height: 1.3; }
+.kid-sub { font-size: .8rem; color: var(--muted); }
+.badge { flex: none; font-size: .78rem; font-weight: 700; border-radius: 999px; padding: 3px 10px; background: var(--idle-soft); color: var(--idle); white-space: nowrap; }
+.st-in .badge { background: var(--brand-soft); color: var(--brand); }
+.st-ext .badge { background: var(--sun-soft); color: var(--sun); }
+.st-out .badge { background: var(--leave-soft); color: var(--leave); }
+.st-absent .badge { background: var(--absent-soft); color: var(--absent); }
+.times { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.tcell { border: 1px dashed var(--line-strong); background: transparent; border-radius: 10px; padding: 4px 10px; text-align: left; }
+.tcell .k { font-size: .72rem; color: var(--muted); display: block; }
+.tcell .v { font-family: var(--f-num); font-size: 1.25rem; font-weight: 700; }
+.meta { font-size: .8rem; color: var(--muted); display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.meta .ext { color: var(--sun); font-weight: 700; }
+.meta .warn { color: var(--absent); font-weight: 700; }
+.acts { display: flex; gap: 8px; }
+.btn { border: 0; border-radius: 12px; padding: 10px 16px; font-weight: 700; min-height: 48px; background: var(--brand); color: var(--brand-ink); font-family: var(--f-display); font-size: 1.05rem; }
+.btn.big { flex: 1; }
+.btn.leave { background: var(--leave); color: #fff; }
+:root[data-theme="dark"] .btn.leave { color: #0d1a2b; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .btn.leave { color: #0d1a2b; } }
+.btn.ghost { background: transparent; color: var(--ink); border: 1px solid var(--line-strong); font-family: var(--f-body); font-size: .92rem; font-weight: 400; }
+.btn.danger { background: transparent; color: var(--absent); border: 1px solid var(--absent); font-family: var(--f-body); font-size: .92rem; }
+.btn.sm { min-height: 40px; padding: 6px 12px; font-size: .9rem; }
+.note { font-size: .82rem; background: var(--bg); border-radius: 8px; padding: 4px 8px; }
+
+.empty { background: var(--paper); border: 1px dashed var(--line-strong); border-radius: 16px; padding: 28px 20px; text-align: center; }
+.empty p { margin: 6px 0 14px; color: var(--muted); }
+.empty .acts { justify-content: center; flex-wrap: wrap; }
+
+/* ---------- panels ---------- */
+.panel { background: var(--paper); border: 1px solid var(--line); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+.panel h2 { margin-bottom: 10px; }
+.panel p { margin: 4px 0 10px; }
+.row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; }
+.field label, .field .lbl { font-size: .85rem; color: var(--muted); }
+.field input, .field select, .field textarea, .inline-input { border: 1px solid var(--line-strong); background: var(--paper); border-radius: 10px; padding: 8px 10px; min-height: 44px; width: 100%; }
+.field textarea { min-height: 70px; resize: vertical; }
+.pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.check { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.check input { width: 22px; height: 22px; accent-color: var(--brand); }
+
+/* ---------- table ---------- */
+.tablewrap { overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--line); border-radius: 12px; background: var(--paper); }
+table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+th, td { padding: 8px 10px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+th { font-size: .78rem; color: var(--muted); font-weight: 700; background: var(--bg); position: sticky; top: 0; }
+td.r, th.r { text-align: right; }
+tr.sum td { font-weight: 700; background: var(--bg); }
+tr.clickable { cursor: pointer; }
+tr.clickable:hover td { background: var(--brand-soft); }
+tr.detail td { background: var(--bg); white-space: normal; padding: 0; }
+.daylist { width: 100%; font-size: .85rem; }
+.daylist td, .daylist th { background: transparent; }
+.ext-c { color: var(--sun); font-weight: 700; }
+
+.kidrow { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+.kidrow:last-child { border-bottom: 0; }
+.kidrow .n { font-weight: 700; }
+.tag { font-size: .72rem; border-radius: 6px; padding: 1px 6px; background: var(--idle-soft); color: var(--muted); margin-left: 4px; }
+
+/* ---------- tabbar ---------- */
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; background: var(--paper); border-top: 1px solid var(--line); display: flex; justify-content: center; padding-bottom: env(safe-area-inset-bottom, 0px); }
+.tabbar .in { display: grid; grid-template-columns: repeat(4, 1fr); width: 100%; max-width: 640px; }
+.tabbar button { border: 0; background: transparent; height: var(--tabbar); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; font-size: .75rem; color: var(--muted); }
+.tabbar button svg { width: 24px; height: 24px; }
+.tabbar button[aria-current="page"] { color: var(--brand); font-weight: 700; }
+
+/* ---------- dialog / toast ---------- */
+dialog { border: 0; border-radius: 18px; padding: 0; width: min(440px, calc(100vw - 32px)); background: var(--paper); color: var(--ink); box-shadow: 0 20px 60px rgba(0,0,0,.25); }
+dialog::backdrop { background: rgba(10, 20, 12, .45); }
+dialog form { padding: 18px; }
+dialog h2 { font-size: 1.15rem; margin-bottom: 4px; }
+dialog .sub { font-size: .85rem; color: var(--muted); margin-bottom: 14px; }
+dialog .foot { display: flex; gap: 8px; justify-content: space-between; flex-wrap: wrap; margin-top: 6px; }
+dialog .foot .r { display: flex; gap: 8px; margin-left: auto; }
+.nowbtn { border: 1px solid var(--line-strong); background: transparent; border-radius: 8px; padding: 2px 8px; font-size: .8rem; align-self: flex-start; }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(var(--tabbar) + 14px + env(safe-area-inset-bottom, 0px)); z-index: 20; background: var(--ink); color: var(--bg); border-radius: 14px; padding: 10px 12px 10px 16px; display: flex; gap: 12px; align-items: center; max-width: calc(100vw - 32px); box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+.toast button { white-space: nowrap; flex: none; border: 0; background: transparent; color: var(--brand-soft); font-weight: 700; padding: 6px 8px; text-decoration: underline; }
+.banner { background: var(--absent-soft); color: var(--absent); border-radius: 12px; padding: 10px 14px; margin-top: 12px; font-size: .9rem; }
+
+/* ---------- 延長保育の帳票アプリ ---------- */
+.tabbar .in { grid-template-columns: repeat(5, 1fr); }
+.topbar a.back { font-size: .85rem; color: var(--brand); text-decoration: none; border: 1px solid var(--line-strong); border-radius: 999px; padding: 6px 12px; white-space: nowrap; }
+.hint { font-size: .85rem; color: var(--muted); margin: 0 0 10px; }
+.okmsg { background: var(--brand-soft); color: var(--brand); border-radius: 12px; padding: 10px 14px; font-size: .9rem; margin-bottom: 12px; }
+.warnmsg { background: var(--sun-soft); color: var(--sun); border-radius: 12px; padding: 10px 14px; font-size: .9rem; margin-bottom: 12px; }
+.shoot { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; min-height: 120px; border: 2px dashed var(--brand); border-radius: 18px; background: var(--brand-soft); color: var(--brand); font-family: var(--f-display); font-weight: 700; font-size: 1.15rem; cursor: pointer; text-align: center; padding: 14px; }
+.shoot svg { width: 40px; height: 40px; }
+.shoot small { font-family: var(--f-body); font-weight: 400; font-size: .8rem; color: var(--muted); }
+.photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin: 12px 0; }
+.ph { position: relative; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.ph img { display: block; width: 100%; height: 150px; object-fit: cover; cursor: zoom-in; }
+.ph .cap { font-size: .78rem; padding: 4px 8px; display: flex; justify-content: space-between; gap: 6px; align-items: center; }
+.ph .cap button { border: 0; background: transparent; color: var(--absent); font-size: .78rem; padding: 2px 4px; }
+.ph .st { position: absolute; top: 6px; left: 6px; font-size: .72rem; font-weight: 700; border-radius: 999px; padding: 2px 8px; background: var(--paper); color: var(--muted); }
+.ph .st.ok { background: var(--brand); color: var(--brand-ink); }
+.ph .st.run { background: var(--sun); color: #fff; }
+.ph .st.err { background: var(--absent); color: #fff; }
+.stage td { padding: 4px 6px; }
+.stage input, .stage select { border: 1px solid var(--line-strong); background: var(--paper); border-radius: 8px; padding: 4px 6px; min-height: 38px; font-size: .9rem; }
+.stage input[type="time"] { width: 7.2em; }
+.stage input[type="date"] { width: 10.5em; }
+.stage select { max-width: 12em; }
+.stage tr.dup td { background: var(--sun-soft); }
+.stage tr.off td { opacity: .45; }
+.stage .x { border: 0; background: transparent; color: var(--absent); font-size: 1.1rem; padding: 4px 8px; }
+.seg { display: inline-flex; border: 1px solid var(--line-strong); border-radius: 12px; overflow: hidden; flex-wrap: wrap; }
+.seg button { border: 0; background: var(--paper); padding: 8px 14px; min-height: 44px; font-size: .92rem; border-right: 1px solid var(--line); }
+.seg button:last-child { border-right: 0; }
+.seg button[aria-pressed="true"] { background: var(--brand); color: var(--brand-ink); font-weight: 700; }
+.toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 12px; }
+.toolbar .grow { flex: 1; }
+.viewer img { max-width: 100%; display: block; }
+dialog.wide { width: min(920px, calc(100vw - 24px)); }
+dialog.wide .body { padding: 12px; max-height: 80vh; overflow: auto; }
+.paid { color: var(--brand); font-weight: 700; }
+.unpaid { color: var(--absent); }
+
+/* ---------- 帳票（紙） ---------- */
+.docs { display: flex; flex-direction: column; align-items: center; gap: 18px; padding: 6px 0 20px; overflow-x: auto; }
+.sheet { --pk: #1a1a1a; --pm: #555; --pl: #999; --pb: #f1f4ef; background: #fff; color: var(--pk); width: 210mm; min-height: 297mm; padding: 14mm 14mm 12mm; box-shadow: 0 2px 14px rgba(0,0,0,.14); font-family: "BIZ UDPGothic", "Hiragino Sans", "Yu Gothic", sans-serif; font-size: 10.5pt; line-height: 1.55; flex: none; position: relative; }
+.sheet.land { width: 297mm; min-height: 210mm; padding: 10mm 10mm 8mm; }
+.sheet .num { font-family: "BIZ UDGothic", ui-monospace, monospace; }
+.sheet h1 { font-family: "Zen Maru Gothic", "BIZ UDPGothic", sans-serif; font-size: 20pt; text-align: center; letter-spacing: .3em; margin: 0 0 4mm; font-weight: 900; }
+.sheet h1.sm { font-size: 15pt; letter-spacing: .12em; }
+.sheet h3 { font-size: 11pt; margin: 6mm 0 2mm; border-left: 4px solid #2f8a4e; padding-left: 6px; font-family: inherit; }
+.sheet .meta2 { display: flex; justify-content: space-between; gap: 8mm; align-items: flex-start; margin-bottom: 5mm; }
+.sheet .to { font-size: 14pt; border-bottom: 1px solid var(--pk); padding: 0 6mm 1mm 0; min-width: 70mm; display: inline-block; }
+.sheet .to small { font-size: 10pt; }
+.sheet .right { text-align: right; }
+.sheet .issuer { text-align: left; font-size: 9.5pt; line-height: 1.5; position: relative; padding-right: 20mm; min-height: 20mm; }
+.sheet .issuer b { font-size: 11.5pt; }
+.sheet .stamp { position: absolute; right: 0; top: 0; width: 17mm; height: 17mm; border: 1px dashed var(--pl); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: var(--pl); font-size: 8pt; }
+.sheet .amount { display: flex; align-items: baseline; gap: 6mm; border: 2px solid var(--pk); padding: 3mm 6mm; margin: 4mm 0 5mm; }
+.sheet .amount .k { font-size: 11pt; }
+.sheet .amount .v { font-size: 22pt; font-weight: 700; letter-spacing: .04em; }
+.sheet table { width: 100%; border-collapse: collapse; font-size: 9.5pt; }
+.sheet th, .sheet td { border: 1px solid #888; padding: 1.4mm 2mm; white-space: nowrap; background: transparent; color: var(--pk); position: static; }
+.sheet th { background: var(--pb); font-weight: 700; font-size: 9pt; text-align: center; }
+.sheet td.r { text-align: right; }
+.sheet td.c { text-align: center; }
+.sheet tr.tot td { font-weight: 700; background: var(--pb); }
+.sheet .foot2 { margin-top: 5mm; font-size: 9pt; color: var(--pm); }
+.sheet .kv { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3mm; margin: 3mm 0; }
+.sheet .kv div { border: 1px solid #bbb; border-radius: 2mm; padding: 2mm 3mm; }
+.sheet .kv .k { font-size: 8.5pt; color: var(--pm); }
+.sheet .kv .v { font-size: 15pt; font-weight: 700; }
+.sheet .bar { display: inline-block; height: 3mm; background: #2f8a4e; vertical-align: middle; border-radius: 1mm; }
+.sheet .twocol { display: grid; grid-template-columns: 1fr 1fr; gap: 6mm; }
+/* 領収証（上：お渡し用／下：控え） */
+.sheet.rc { padding: 0; }
+.rc .half { height: 148.5mm; padding: 11mm 16mm 8mm; position: relative; overflow: hidden; }
+.rc .cut { position: absolute; left: 0; right: 0; top: 148.5mm; border-top: 1px dashed #777; }
+.rc .cut span { position: absolute; left: 50%; transform: translate(-50%, -55%); background: #fff; padding: 0 3mm; font-size: 8.5pt; color: #666; }
+.rc .tagline { position: absolute; top: 9mm; right: 16mm; font-size: 9pt; border: 1px solid var(--pk); padding: .5mm 3mm; }
+.rc .tagline.ctl { background: var(--pk); color: #fff; }
+.rc .rcno { font-size: 9pt; text-align: right; margin-top: 4mm; }
+.rc .tad { font-size: 10.5pt; margin: 1mm 0 4mm; }
+.rc table td { font-size: 9pt; }
+.rc .rcrow { display: flex; justify-content: space-between; gap: 8mm; align-items: flex-end; margin-top: 4mm; }
+.rc .rev { position: absolute; left: 16mm; bottom: 8mm; width: 20mm; height: 24mm; border: 1px dashed #aaa; font-size: 7pt; color: #999; display: flex; align-items: center; justify-content: center; text-align: center; }
+/* 月一覧 */
+.sheet.land table { font-size: 7.6pt; table-layout: fixed; }
+.sheet.land th, .sheet.land td { padding: .8mm .5mm; text-align: center; }
+.sheet.land td.nm { text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-left: 1.2mm; }
+.sheet.land th.we { color: #b0436b; }
+.sheet.land td.hit { background: #fdead3; font-weight: 700; }
+.sheet.stats { padding: 10mm 12mm 8mm; }
+.sheet.stats .kv { margin: 2mm 0; }
+.sheet.stats .kv div { padding: 1.2mm 3mm; }
+.sheet.stats table { font-size: 8pt; }
+.sheet.stats th, .sheet.stats td { padding: .4mm 2mm; line-height: 1.4; }
+.sheet.stats .kv .v { font-size: 13pt; }
+.sheet.stats h3 { margin-top: 4mm; }
+.sheet .legend { font-size: 8pt; color: var(--pm); margin-top: 2mm; }
+
+@media screen and (max-width: 860px) {
+  .docs { align-items: flex-start; }
+  .sheet { zoom: .45; }
+}
+@page { size: A4 portrait; margin: 0; }
+@page land { size: A4 landscape; margin: 0; }
+@media print {
+  html, body { background: #fff !important; }
+  .app { padding: 0 !important; max-width: none; margin: 0; }
+  .app > *:not(#s-docs), #s-docs > *:not(#docView), .tabbar, .toast, dialog { display: none !important; }
+  #s-docs { padding: 0; display: block !important; }
+  #docView { padding: 0; gap: 0; display: block; overflow: visible; }
+  .sheet { box-shadow: none; zoom: 1 !important; break-after: page; page-break-after: always; margin: 0; min-height: 0; }
+  .sheet.rc { height: 297mm; overflow: hidden; }
+  .sheet.land { page: land; }
+  .sheet:last-child { break-after: auto; page-break-after: auto; }
+  .tabbar, .topbar, .toast { display: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="brand">
+      <svg width="36" height="36" viewBox="0 0 36 36" aria-hidden="true"><circle cx="18" cy="18" r="17" fill="var(--brand-soft)"/><path d="M18 27c0-7 0-11 0-13" stroke="var(--brand)" stroke-width="2.4" stroke-linecap="round" fill="none"/><path d="M18 16c-6 0-9-3-9-8 5 0 9 3 9 8z" fill="var(--brand)"/><path d="M18 19c5 0 8-3 8-7-5 0-8 3-8 7z" fill="var(--brand)" opacity=".7"/></svg>
+      <div><h1>若夏保育園</h1><div class="sub">延長保育の帳票づくり</div></div>
+    </div>
+    <a class="back" href="./index.html">登降園アプリ</a>
+  </header>
+  <div class="banner" id="storeWarn" hidden>この端末では記録を保存できません（プライベートブラウズなど）。通常のブラウザで開いてください。</div>
+
+  <!-- ========== 写真 ========== -->
+  <section class="screen" id="s-photo">
+    <div class="row" style="justify-content:space-between;margin-bottom:10px">
+      <h2>延長保育の記録を写真で読む</h2>
+      <div class="row"><span class="small muted">対象の月</span><input type="month" id="pMonth" class="inline-input" style="width:auto"></div>
+    </div>
+    <div class="warnmsg" id="noKey" hidden>写真を自動で読み取るには「設定」で Claude の API キーを入れてください。キーがなくても、写真を見ながら下の表に手で入力できます。</div>
+    <label class="shoot">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>
+      記録用紙を撮影する／写真を選ぶ
+      <small>延長保育の利用簿・お迎え表など。何枚でもOK。明るい場所で、紙全体がまっすぐ入るように撮ってください。</small>
+      <input type="file" id="pFile" accept="image/*" capture="environment" multiple hidden>
+    </label>
+    <div class="photos" id="photoList"></div>
+    <div class="toolbar" id="readBar" hidden>
+      <button type="button" class="btn" id="readBtn">写真を読み取る</button>
+      <span class="small muted grow" id="readMsg"></span>
+    </div>
+
+    <div class="panel" id="stagePanel">
+      <div class="row" style="justify-content:space-between;margin-bottom:6px">
+        <h2>読み取り結果の確認</h2>
+        <button type="button" class="btn ghost sm" id="addRow">＋ 行を手で追加</button>
+      </div>
+      <p class="hint">内容を確かめて、まちがいは直してから「記録に追加」を押してください。オレンジの行は同じ日・同じ子の記録がすでにあります（追加すると上書きします）。</p>
+      <div id="stageBody"></div>
+      <div class="toolbar" style="margin-top:12px;margin-bottom:0">
+        <button type="button" class="btn" id="commitBtn">チェックした行を記録に追加</button>
+        <button type="button" class="btn ghost sm" id="clearStage">表をからにする</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ========== 記録 ========== -->
+  <section class="screen" id="s-recs" hidden>
+    <div class="toolbar">
+      <h2>延長保育の記録</h2>
+      <input type="month" id="rMonth" class="inline-input" style="width:auto">
+      <span class="grow"></span>
+      <button type="button" class="btn sm" id="newUse">＋ 記録を追加</button>
+      <button type="button" class="btn ghost sm" id="importHoiku">登降園アプリから取りこむ</button>
+    </div>
+    <div id="recBody"></div>
+  </section>
+
+  <!-- ========== 帳票 ========== -->
+  <section class="screen" id="s-docs" hidden>
+    <div class="toolbar">
+      <h2>帳票</h2>
+      <input type="month" id="dMonth" class="inline-input" style="width:auto">
+    </div>
+    <div class="toolbar">
+      <div class="seg" id="docSeg" role="group" aria-label="帳票の種類">
+        <button type="button" data-doc="stats" aria-pressed="true">月統計</button>
+        <button type="button" data-doc="invoice" aria-pressed="false">個人請求</button>
+        <button type="button" data-doc="receipt" aria-pressed="false">領収証と控え</button>
+        <button type="button" data-doc="list" aria-pressed="false">月一覧</button>
+      </div>
+    </div>
+    <div class="toolbar" id="docOpts"></div>
+    <div id="docNote"></div>
+    <div class="docs" id="docView"></div>
+  </section>
+
+  <!-- ========== 園児 ========== -->
+  <section class="screen" id="s-kids" hidden>
+    <div class="toolbar">
+      <h2>園児の名簿</h2>
+      <span class="grow"></span>
+      <button type="button" class="btn sm" id="addKid">＋ 園児を追加</button>
+      <button type="button" class="btn ghost sm" id="importKids">登降園アプリの名簿を取りこむ</button>
+    </div>
+    <p class="hint">写真の名前は、ここの名前・ふりがなと照らし合わせて自動で選ばれます。請求書・領収証の宛名には「保護者名」を使います（空なら「〇〇さん 保護者様」）。</p>
+    <div id="kidList"></div>
+  </section>
+
+  <!-- ========== 設定 ========== -->
+  <section class="screen" id="s-settings" hidden>
+    <div class="panel">
+      <h2>延長保育の料金</h2>
+      <div class="field"><span class="lbl">保育標準時間（11時間）</span>
+        <div class="pair"><input type="time" id="stdStart" aria-label="標準時間の開始"><input type="time" id="stdEnd" aria-label="標準時間の終了"></div></div>
+      <div class="field"><span class="lbl">保育短時間（8時間）</span>
+        <div class="pair"><input type="time" id="shortStart" aria-label="短時間の開始"><input type="time" id="shortEnd" aria-label="短時間の終了"></div></div>
+      <div class="field"><label for="feeMode">料金の決め方</label>
+        <select id="feeMode"><option value="unit">時間の単位ごと（例：30分ごとに200円）</option><option value="flat">1回ごとに定額（例：1回300円）</option></select></div>
+      <div class="pair">
+        <div class="field" id="unitWrap"><label for="unitMin">延長の単位（分）</label>
+          <select id="unitMin"><option value="10">10分</option><option value="15">15分</option><option value="30">30分</option><option value="60">60分</option></select></div>
+        <div class="field"><label for="feeUnit" id="feeLbl">1単位の料金（円）</label><input type="number" id="feeUnit" min="0" step="10" inputmode="numeric"></div>
+      </div>
+      <div class="pair">
+        <div class="field"><label for="grace">猶予（分）：この分数以内なら延長にしない</label><input type="number" id="grace" min="0" max="30" step="1" inputmode="numeric"></div>
+        <div class="field"><label for="cap">1か月の上限（円）：0なら上限なし</label><input type="number" id="cap" min="0" step="100" inputmode="numeric"></div>
+      </div>
+      <p class="small muted" id="feeExample"></p>
+    </div>
+    <div class="panel">
+      <h2>請求書・領収証に印刷する内容</h2>
+      <div class="field"><label for="orgName">園の名前</label><input type="text" id="orgName" maxlength="40"></div>
+      <div class="field"><label for="orgAddr">住所</label><input type="text" id="orgAddr" maxlength="80"></div>
+      <div class="pair">
+        <div class="field"><label for="orgTel">電話番号</label><input type="text" id="orgTel" maxlength="20" inputmode="tel"></div>
+        <div class="field"><label for="orgRep">代表者（園長名）</label><input type="text" id="orgRep" maxlength="30"></div>
+      </div>
+      <div class="pair">
+        <div class="field"><label for="payDay">支払期限：翌月の何日</label><input type="number" id="payDay" min="0" max="31" inputmode="numeric"></div>
+        <div class="field"><label for="payHow">支払い方法の案内</label><input type="text" id="payHow" maxlength="60" placeholder="例：園の窓口で現金でお支払いください"></div>
+      </div>
+      <div class="field"><label for="eraSel">日付の書き方</label>
+        <select id="eraSel"><option value="wa">令和（和暦）</option><option value="ad">西暦</option></select></div>
+    </div>
+    <div class="panel">
+      <h2>写真の読み取り（Claude）</h2>
+      <p class="small muted">写真の文字を読むのに Anthropic 社の Claude を使います。API キーは <a href="https://console.anthropic.com/" target="_blank" rel="noopener">Claude Console</a> で作れます（利用料がかかります）。キーと写真はこの端末から Anthropic へ直接送られ、それ以外には送信されません。共用の端末ではキーを保存しないでください。</p>
+      <div class="field"><label for="apiKey">API キー</label><input type="password" id="apiKey" autocomplete="off" placeholder="sk-ant-..."></div>
+      <div class="pair">
+        <div class="field"><label for="model">モデル</label><input type="text" id="model" autocomplete="off"></div>
+        <div class="field"><label for="effort">読み取りのていねいさ</label>
+          <select id="effort"><option value="medium">ふつう</option><option value="high">ていねい（時間がかかる）</option><option value="low">はやい</option></select></div>
+      </div>
+      <button type="button" class="btn ghost sm" id="forgetKey">キーを消す</button>
+    </div>
+    <div class="panel">
+      <h2>データの保存・引っこし</h2>
+      <p class="small muted">記録はこの端末のブラウザの中だけに保存されます。写真そのものは保存しません。ときどきバックアップを保存してください。</p>
+      <div class="row">
+        <button type="button" class="btn ghost sm" id="backupBtn">バックアップを保存</button>
+        <label class="btn ghost sm" style="display:inline-flex;align-items:center">バックアップから復元<input type="file" id="restoreFile" accept="application/json,.json" hidden></label>
+        <button type="button" class="btn ghost sm" id="sampleBtn">サンプルで試す</button>
+        <button type="button" class="btn danger sm" id="resetBtn">すべてのデータを消す</button>
+      </div>
+    </div>
+  </section>
+</div>
+
+<nav class="tabbar" aria-label="画面">
+  <div class="in">
+    <button type="button" data-tab="photo" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>写真</button>
+    <button type="button" data-tab="recs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg>記録</button>
+    <button type="button" data-tab="docs"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l4 4v14H6z"/><path d="M15 3v4h4M9 12h7M9 16h7"/></svg>帳票</button>
+    <button type="button" data-tab="kids"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.5"/><path d="M3 20c0-3.5 2.7-6 6-6s6 2.5 6 6"/><circle cx="17" cy="9" r="2.5"/><path d="M16 14c2.8 0 5 2 5 5"/></svg>園児</button>
+    <button type="button" data-tab="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></svg>設定</button>
+  </div>
+</nav>
+
+<!-- 記録の編集 -->
+<dialog id="dlgUse">
+  <form method="dialog" id="useForm">
+    <h2 id="useTitle">記録を追加</h2>
+    <div class="sub" id="useSub"></div>
+    <div class="field"><label for="uKid">園児</label><select id="uKid" required></select></div>
+    <div class="field"><label for="uDate">日付</label><input type="date" id="uDate" required></div>
+    <div class="pair">
+      <div class="field"><label for="uIn">登園（朝の延長がある時）</label><input type="time" id="uIn"></div>
+      <div class="field"><label for="uOut">お迎え（降園）</label><input type="time" id="uOut"></div>
+    </div>
+    <div class="field"><label for="uFee">料金を手で決める（円）：空なら自動計算</label><input type="number" id="uFee" min="0" step="10" inputmode="numeric"></div>
+    <div class="field"><label for="uNote">メモ</label><input type="text" id="uNote" maxlength="60"></div>
+    <p class="small" id="useCalc" style="color:var(--sun)"></p>
+    <div class="foot">
+      <button type="button" class="btn danger sm" id="useDel">削除</button>
+      <div class="r">
+        <button type="button" class="btn ghost sm" id="useCancel">やめる</button>
+        <button type="submit" class="btn sm">保存</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- 園児の編集 -->
+<dialog id="dlgKid">
+  <form method="dialog" id="kidForm">
+    <h2 id="kidTitle">園児を追加</h2>
+    <div class="sub">名前は必須です。</div>
+    <div class="field"><label for="kName">名前</label><input type="text" id="kName" required maxlength="30" autocomplete="off"></div>
+    <div class="field"><label for="kKana">ふりがな</label><input type="text" id="kKana" maxlength="40" autocomplete="off"></div>
+    <div class="field"><label for="kCls">クラス</label><input type="text" id="kCls" list="clsList" maxlength="20" autocomplete="off" placeholder="例：3歳児 ぱんだ組"><datalist id="clsList"></datalist></div>
+    <div class="field"><label for="kParent">保護者名（宛名）</label><input type="text" id="kParent" maxlength="30" autocomplete="off" placeholder="例：比嘉 花子"></div>
+    <div class="field"><label for="kType">認定区分</label>
+      <select id="kType"><option value="std">保育標準時間</option><option value="short">保育短時間</option><option value="custom">個別に時間を決める</option></select></div>
+    <div class="field" id="kCustom" hidden><span class="lbl">この子の保育時間</span>
+      <div class="pair"><input type="time" id="kStart" aria-label="開始"><input type="time" id="kEnd" aria-label="終了"></div></div>
+    <label class="check"><input type="checkbox" id="kActive" checked> 在籍中</label>
+    <div class="foot">
+      <button type="button" class="btn danger sm" id="kidDelete" hidden>名簿から削除</button>
+      <div class="r">
+        <button type="button" class="btn ghost sm" id="kidCancel">やめる</button>
+        <button type="submit" class="btn sm">保存</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+
+<!-- 写真の拡大 -->
+<dialog id="dlgView" class="wide">
+  <form method="dialog">
+    <div class="row" style="justify-content:space-between;padding:10px 12px 0"><b id="viewTitle">写真</b><button type="submit" class="btn ghost sm">閉じる</button></div>
+    <div class="body viewer"><img id="viewImg" alt="撮影した記録用紙"></div>
+  </form>
+</dialog>
+
+<div class="toast" id="toast" role="status" hidden><span id="toastMsg"></span><button type="button" id="toastUndo">取り消す</button></div>
+<script>
+(() => {
+'use strict';
+const KEY = 'wakanatsu-enchou-v1';
+const HOIKU_KEY = 'wakanatsu-hoiku-v1';
+const DEF = {
+  std: { start: '07:00', end: '18:00' }, short: { start: '08:30', end: '16:30' },
+  feeMode: 'unit', unit: 30, fee: 200, grace: 0, cap: 0,
+  orgName: '若夏保育園', orgAddr: '', orgTel: '', orgRep: '', payDay: 10, payHow: '', era: 'wa',
+  apiKey: '', model: 'claude-opus-5-5', effort: 'medium', rcSeq: 0,
+};
+const WD = ['日', '月', '火', '水', '木', '金', '土'];
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const pad = (n) => String(n).padStart(2, '0');
+const keyOf = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+const todayKey = () => keyOf(new Date());
+const thisMonth = () => todayKey().slice(0, 7);
+const parseKey = (k) => { const [y, m, d] = k.split('-').map(Number); return new Date(y, m - 1, d); };
+const toMin = (t) => { if (!t) return null; const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+const fmtDur = (m) => (m >= 60 ? `${Math.floor(m / 60)}時間${m % 60 ? (m % 60) + '分' : ''}` : `${m}分`);
+const yen = (n) => (+n || 0).toLocaleString('ja-JP') + '円';
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const clsSort = (a, b) => a.localeCompare(b, 'ja', { numeric: true });
+const kidSort = (a, b) => clsSort(a.cls || '', b.cls || '') || (a.kana || a.name).localeCompare(b.kana || b.name, 'ja');
+
+/* ---------- storage ---------- */
+function blank() { return { kids: [], uses: [], receipts: {}, settings: JSON.parse(JSON.stringify(DEF)) }; }
+function normalize(r) {
+  if (!r || !Array.isArray(r.kids) || !Array.isArray(r.uses)) return null;
+  const s = r.settings || {};
+  return { kids: r.kids, uses: r.uses, receipts: r.receipts || {}, settings: { ...DEF, ...s, std: { ...DEF.std, ...(s.std || {}) }, short: { ...DEF.short, ...(s.short || {}) } } };
+}
+function load() { try { return normalize(JSON.parse(localStorage.getItem(KEY))) || blank(); } catch (e) { return blank(); } }
+let S = load();
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(S)); $('storeWarn').hidden = true; }
+  catch (e) { $('storeWarn').hidden = false; }
+}
+
+/* ---------- 日付の表記 ---------- */
+function eraYear(y) { return S.settings.era === 'ad' ? `${y}年` : (y - 2018 === 1 ? '令和元年' : `令和${y - 2018}年`); }
+function ymLabel(ym) { const [y, m] = ym.split('-').map(Number); return `${eraYear(y)}${m}月`; }
+function dateLabel(k) { const d = parseKey(k); return `${eraYear(d.getFullYear())}${d.getMonth() + 1}月${d.getDate()}日`; }
+function dayShort(k) { const d = parseKey(k); return `${d.getMonth() + 1}/${d.getDate()}(${WD[d.getDay()]})`; }
+function monthDays(ym) { const [y, m] = ym.split('-').map(Number); return new Date(y, m, 0).getDate(); }
+function payDue(ym) {
+  const day = +S.settings.payDay; if (!day) return '';
+  const [y, m] = ym.split('-').map(Number);
+  const d = new Date(y, m, 1); const last = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(day, last)); return dateLabel(keyOf(d));
+}
+
+/* ---------- 計算 ---------- */
+const kidOf = (id) => S.kids.find((k) => k.id === id);
+function hoursOf(k) {
+  if (k && k.type === 'custom' && k.start && k.end) return { start: k.start, end: k.end, label: '個別' };
+  const t = k && k.type === 'short' ? 'short' : 'std';
+  return { ...S.settings[t], label: t === 'short' ? '短時間' : '標準' };
+}
+function calc(u) {
+  const k = kidOf(u.kidId), h = hoursOf(k), s = S.settings, g = +s.grace || 0, unit = +s.unit || 30;
+  let before = u.in ? Math.max(0, toMin(h.start) - toMin(u.in)) : 0;
+  let after = u.out ? Math.max(0, toMin(u.out) - toMin(h.end)) : 0;
+  if (before <= g) before = 0;
+  if (after <= g) after = 0;
+  const units = s.feeMode === 'flat' ? (before || after ? 1 : 0) : Math.ceil(before / unit) + Math.ceil(after / unit);
+  let fee = units * (+s.fee || 0);
+  const manual = u.fee !== '' && u.fee != null && !isNaN(+u.fee);
+  if (manual) fee = +u.fee;
+  return { before, after, min: before + after, units, fee, manual };
+}
+function usesOf(ym) { return S.uses.filter((u) => u.date.startsWith(ym)).sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : kidSort(kidOf(a.kidId) || {}, kidOf(b.kidId) || {}))); }
+/* 月の集計：園児ごと */
+function monthRows(ym) {
+  const list = usesOf(ym);
+  const by = {};
+  list.forEach((u) => { const c = calc(u); if (!c.fee && !c.min) return; (by[u.kidId] = by[u.kidId] || []).push({ u, c }); });
+  const cap = +S.settings.cap || 0;
+  return Object.keys(by).map((id) => {
+    const k = kidOf(id) || { id, name: '（削除された園児）', cls: '' };
+    const items = by[id];
+    const raw = items.reduce((s, x) => s + x.c.fee, 0);
+    return {
+      k, items, count: items.length, min: items.reduce((s, x) => s + x.c.min, 0), units: items.reduce((s, x) => s + x.c.units, 0),
+      raw, fee: cap && raw > cap ? cap : raw, capped: !!(cap && raw > cap),
+    };
+  }).sort((a, b) => kidSort(a.k, b.k));
+}
+const rcKey = (ym, id) => `${ym}:${id}`;
+const addressee = (k) => (k.parent ? `${k.parent} 様` : `${k.name} さん 保護者 様`);
+
+/* ---------- toast ---------- */
+let toastTimer, undoFn;
+function toast(msg, undo) {
+  $('toastMsg').textContent = msg; undoFn = undo || null; $('toastUndo').hidden = !undo; $('toast').hidden = false;
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => { $('toast').hidden = true; undoFn = null; }, 5000);
+}
+$('toastUndo').addEventListener('click', () => { if (undoFn) undoFn(); $('toast').hidden = true; undoFn = null; });
+
+/* =========================================================
+   写真 → 読み取り
+   ========================================================= */
+let photos = []; // {id, url, b64, status, msg}
+let stage = [];  // {sid, on, date, kidId, raw, in, out, note, src}
+$('pFile').addEventListener('change', async (e) => {
+  const files = [...e.target.files]; e.target.value = '';
+  for (const f of files) {
+    try {
+      const { url, b64 } = await shrink(f);
+      photos.push({ id: uid(), url, b64, status: 'new', msg: '' });
+    } catch (err) { toast('この画像は開けませんでした'); }
+  }
+  renderPhotos();
+});
+function shrink(file) {
+  return new Promise((res, rej) => {
+    const img = new Image(), src = URL.createObjectURL(file);
+    img.onload = () => {
+      const max = 2000, r = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+      const c = document.createElement('canvas');
+      c.width = Math.round(img.naturalWidth * r); c.height = Math.round(img.naturalHeight * r);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(src);
+      const url = c.toDataURL('image/jpeg', 0.85);
+      res({ url, b64: url.split(',')[1] });
+    };
+    img.onerror = () => { URL.revokeObjectURL(src); rej(new Error('img')); };
+    img.src = src;
+  });
+}
+const ST_TXT = { new: '未読み取り', run: '読み取り中…', ok: '読み取り済み', err: '失敗' };
+function renderPhotos() {
+  $('photoList').innerHTML = photos.map((p, i) => `<div class="ph" data-pid="${p.id}"><span class="st ${p.status}">${ST_TXT[p.status]}</span><img src="${p.url}" alt="写真${i + 1}" data-view><div class="cap"><span>写真${i + 1}${p.msg ? '：' + esc(p.msg) : ''}</span><button type="button" data-rm>削除</button></div></div>`).join('');
+  $('readBar').hidden = !photos.length;
+  $('noKey').hidden = !!S.settings.apiKey;
+  $('readBtn').disabled = !S.settings.apiKey || photos.some((p) => p.status === 'run');
+  $('readBtn').style.opacity = $('readBtn').disabled ? .5 : 1;
+}
+$('photoList').addEventListener('click', (e) => {
+  const box = e.target.closest('.ph'); if (!box) return;
+  const p = photos.find((x) => x.id === box.dataset.pid);
+  if (e.target.closest('[data-rm]')) { photos = photos.filter((x) => x !== p); renderPhotos(); return; }
+  if (e.target.closest('[data-view]')) { $('viewImg').src = p.url; $('viewTitle').textContent = '写真' + (photos.indexOf(p) + 1); $('dlgView').showModal(); }
+});
+
+const SCHEMA = {
+  type: 'object', additionalProperties: false, required: ['sheet_kind', 'rows', 'notes'],
+  properties: {
+    sheet_kind: { type: 'string', description: '用紙の種類の短い説明（例：日ごとの延長保育利用簿／個人別の月表）' },
+    notes: { type: 'string', description: '読みにくかった所など、確認してほしい点。なければ空文字' },
+    rows: {
+      type: 'array',
+      items: {
+        type: 'object', additionalProperties: false, required: ['date', 'name', 'in', 'out', 'fee', 'note'],
+        properties: {
+          date: { type: 'string', description: 'YYYY-MM-DD。年や月が書かれていなければ対象の月を使う' },
+          name: { type: 'string', description: '園児の名前（名簿にある表記に合わせる）' },
+          in: { type: 'string', description: '朝の登園時刻 HH:MM（24時間制）。書かれていなければ空文字' },
+          out: { type: 'string', description: 'お迎え・降園時刻 HH:MM（24時間制、夕方は18:30のように）。書かれていなければ空文字' },
+          fee: { type: 'string', description: '用紙に金額が書かれていればその数字だけ（例 400）。なければ空文字' },
+          note: { type: 'string', description: 'お迎えの人・備考など。なければ空文字' },
+        },
+      },
+    },
+  },
+};
+async function readPhoto(p, ym) {
+  const s = S.settings;
+  const roster = S.kids.filter((k) => k.active !== false).map((k) => `${k.name}${k.kana ? `（${k.kana}）` : ''}${k.cls ? ` / ${k.cls}` : ''}`).join('\n') || '（名簿はまだありません）';
+  const prompt = `これは沖縄の若夏保育園の「延長保育」の記録用紙の写真です。手書きの場合があります。
+用紙に書かれている延長保育の利用を、1人1日ごとに1行ずつ、すべて書き出してください。
+
+- 対象の月：${ym.replace('-', '年')}月（用紙に年月が書かれていればそちらを優先）
+- 1日分に多くの子が並ぶ用紙（日ごとの利用簿）も、1人の子の1か月分が並ぶ用紙（個人表）もあります。どちらでも1行＝1人×1日にしてください。
+- 時刻は24時間制の HH:MM にしてください（「6時半」「6:30」が夕方なら 18:30）。
+- 欠席・空欄・線で消された行は出さないでください。
+- 名前は次の名簿の表記にできるだけ合わせてください。名簿にない子は用紙のとおりに書いてください。
+- 読めない文字は推測しすぎず、notes に書いてください。
+
+名簿：
+${roster}`;
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'x-api-key': s.apiKey,
+      'anthropic-version': '2026-10-21',
+      'anthropic-beta': 'server-side-fallback-2026-07-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+    },
+    body: JSON.stringify({
+      model: s.model || DEF.model,
+      max_tokens: 16000,
+      fallbacks: 'default',
+      output_config: { effort: s.effort || 'medium', format: { type: 'json_schema', schema: SCHEMA } },
+      messages: [{ role: 'user', content: [
+        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: p.b64 } },
+        { type: 'text', text: prompt },
+      ] }],
+    }),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) {
+    const m = (data.error && data.error.message) || res.statusText;
+    if (res.status === 401) throw new Error('API キーがちがいます');
+    if (res.status === 429) throw new Error('混み合っています。少し待ってから');
+    throw new Error(`エラー ${res.status}: ${m}`);
+  }
+  if (data.stop_reason === 'refusal') throw new Error('この写真は読み取れませんでした');
+  if (data.stop_reason === 'max_tokens') throw new Error('記録が多すぎます。用紙を分けて撮ってください');
+  const txt = (data.content || []).filter((b) => b.type === 'text').map((b) => b.text).join('');
+  return JSON.parse(txt);
+}
+const norm = (s) => String(s || '').replace(/[\s　・]/g, '').replace(/（見本）|\(見本\)/g, '').replace(/[ァ-ン]/g, (c) => String.fromCharCode(c.charCodeAt(0) - 0x60));
+function matchKid(name) {
+  const n = norm(name); if (!n) return '';
+  const kids = S.kids;
+  let k = kids.find((x) => norm(x.name) === n || norm(x.kana) === n);
+  if (!k) k = kids.find((x) => { const a = norm(x.name), b = norm(x.kana); return (a && (a.includes(n) || n.includes(a))) || (b && (b.includes(n) || n.includes(b))); });
+  return k ? k.id : '';
+}
+// pm=true（お迎え）のとき、12時より前の時刻は夕方とみなす（「6:30」→ 18:30）
+const fixTime = (t, pm) => { const m = /^(\d{1,2})[:：時](\d{0,2})/.exec(String(t || '').trim()); if (!m) return ''; let h = +m[1]; const mi = +(m[2] || 0); if (pm && h >= 1 && h < 12) h += 12; if (h < 24 && mi < 60) return `${pad(h)}:${pad(mi)}`; return ''; };
+const fixDate = (d, ym) => { const m = /^(\d{4})-(\d{1,2})-(\d{1,2})$/.exec(String(d || '').trim()); if (m) return `${m[1]}-${pad(m[2])}-${pad(m[3])}`; const n = /(\d{1,2})\D*$/.exec(String(d || '')); return n && +n[1] <= monthDays(ym) ? `${ym}-${pad(n[1])}` : `${ym}-01`; };
+
+$('readBtn').addEventListener('click', async () => {
+  const ym = $('pMonth').value || thisMonth();
+  const todo = photos.filter((p) => p.status !== 'ok');
+  if (!todo.length) { toast('読み取っていない写真はありません'); return; }
+  let added = 0, notes = [];
+  for (const p of todo) {
+    p.status = 'run'; p.msg = ''; renderPhotos();
+    $('readMsg').textContent = `写真${photos.indexOf(p) + 1} を読み取っています…（1枚 数十秒ほど）`;
+    try {
+      const r = await readPhoto(p, ym);
+      const no = photos.indexOf(p) + 1;
+      (r.rows || []).forEach((x) => {
+        stage.push({ sid: uid(), on: true, date: fixDate(x.date, ym), kidId: matchKid(x.name), raw: String(x.name || '').trim(), in: fixTime(x.in), out: fixTime(x.out, true), fee: '', written: String(x.fee || '').replace(/[^\d]/g, ''), note: x.note || '', src: no });
+        added++;
+      });
+      if (r.notes) notes.push(`写真${no}：${r.notes}`);
+      p.status = 'ok'; p.msg = `${(r.rows || []).length}件`;
+    } catch (err) { p.status = 'err'; p.msg = err.message || '失敗'; }
+    renderPhotos(); renderStage();
+  }
+  $('readMsg').textContent = `${added}件を読み取りました。` + (notes.length ? ' 確認してほしい点 → ' + notes.join(' ／ ') : '');
+});
+
+function kidOptions(sel, raw) {
+  const ks = S.kids.slice().sort(kidSort);
+  return `<option value="">— 選ぶ —</option>` + (raw && !sel ? `<option value="new:${esc(raw)}" selected>＋新しく登録：${esc(raw)}</option>` : '') +
+    ks.map((k) => `<option value="${k.id}" ${k.id === sel ? 'selected' : ''}>${esc(k.name)}${k.cls ? `（${esc(k.cls)}）` : ''}</option>`).join('');
+}
+const isDup = (r) => r.kidId && S.uses.some((u) => u.kidId === r.kidId && u.date === r.date);
+function renderStage() {
+  if (!stage.length) { $('stageBody').innerHTML = `<div class="empty"><p>写真を読み取ると、ここに一覧が出ます。手で追加することもできます。</p></div>`; return; }
+  const tmp = (r) => calc({ kidId: r.kidId, in: r.in, out: r.out, fee: r.fee });
+  $('stageBody').innerHTML = `<div class="tablewrap"><table class="stage"><thead><tr><th>追加</th><th>写真</th><th>日付</th><th>園児</th><th>登園</th><th>お迎え</th><th class="r">延長</th><th class="r">料金</th><th>用紙の金額</th><th>メモ</th><th></th></tr></thead><tbody>` +
+    stage.map((r) => {
+      const c = tmp(r);
+      return `<tr data-sid="${r.sid}" class="${isDup(r) ? 'dup' : ''} ${r.on ? '' : 'off'}">
+      <td><input type="checkbox" data-f="on" ${r.on ? 'checked' : ''} aria-label="追加する"></td>
+      <td class="num">${r.src ? `<button type="button" class="btn ghost sm" data-ph="${r.src}" style="min-height:32px;padding:2px 8px">${r.src}</button>` : '手'}</td>
+      <td><input type="date" data-f="date" value="${r.date}"></td>
+      <td><select data-f="kidId">${kidOptions(r.kidId, r.raw)}</select>${r.raw && r.kidId && norm(kidOf(r.kidId)?.name) !== norm(r.raw) ? `<div class="small muted">用紙：${esc(r.raw)}</div>` : ''}</td>
+      <td><input type="time" data-f="in" value="${r.in}"></td>
+      <td><input type="time" data-f="out" value="${r.out}"></td>
+      <td class="r num">${c && c.min ? fmtDur(c.min) : '—'}</td>
+      <td class="r num ${c && c.fee ? 'ext-c' : ''}">${c ? yen(c.fee) : '—'}</td>
+      <td class="num">${r.written ? yen(r.written) + (c && +r.written !== c.fee ? ` <button type="button" class="btn ghost sm" data-usefee style="min-height:30px;padding:2px 6px">この額にする</button>` : '') : ''}</td>
+      <td><input type="text" data-f="note" value="${esc(r.note)}" style="width:9em"></td>
+      <td><button type="button" class="x" data-del aria-label="行を消す">×</button></td></tr>`;
+    }).join('') + `</tbody></table></div><p class="small muted" style="margin:6px 0 0">${stage.filter((r) => r.on).length}件をチェック中。料金は「設定」の料金表で自動計算します（「この額にする」で用紙の金額に固定できます）。</p>`;
+}
+$('stageBody').addEventListener('change', (e) => {
+  const tr = e.target.closest('[data-sid]'); if (!tr) return;
+  const r = stage.find((x) => x.sid === tr.dataset.sid), f = e.target.dataset.f;
+  if (f === 'on') r.on = e.target.checked;
+  else if (f === 'kidId') {
+    const v = e.target.value;
+    if (v.startsWith('new:')) r.kidId = ''; else r.kidId = v;
+  } else r[f] = e.target.value;
+  renderStage();
+});
+$('stageBody').addEventListener('click', (e) => {
+  const tr = e.target.closest('[data-sid]'); if (!tr) return;
+  const r = stage.find((x) => x.sid === tr.dataset.sid);
+  if (e.target.closest('[data-del]')) { stage = stage.filter((x) => x !== r); renderStage(); }
+  else if (e.target.closest('[data-usefee]')) { r.fee = r.written; renderStage(); }
+  else if (e.target.closest('[data-ph]')) { const p = photos[+e.target.closest('[data-ph]').dataset.ph - 1]; if (p) { $('viewImg').src = p.url; $('viewTitle').textContent = '写真' + e.target.closest('[data-ph]').dataset.ph; $('dlgView').showModal(); } }
+});
+$('addRow').addEventListener('click', () => {
+  const ym = $('pMonth').value || thisMonth();
+  const last = stage[stage.length - 1];
+  stage.push({ sid: uid(), on: true, date: last ? last.date : (todayKey().startsWith(ym) ? todayKey() : `${ym}-01`), kidId: '', raw: '', in: '', out: '', fee: '', written: '', note: '', src: 0 });
+  renderStage();
+});
+$('clearStage').addEventListener('click', () => { if (stage.length && !confirm('表の内容をすべて消しますか？（記録に追加したものは消えません）')) return; stage = []; renderStage(); });
+$('commitBtn').addEventListener('click', () => {
+  const rows = stage.filter((r) => r.on);
+  if (!rows.length) { toast('チェックされた行がありません'); return; }
+  const bad = rows.filter((r) => !r.date || (!r.kidId && !r.raw) || (!r.in && !r.out));
+  if (bad.length) { alert(`${bad.length}件は「日付・園児・時刻」のどれかが空です。直すか、チェックを外してください。`); return; }
+  const before = JSON.stringify({ kids: S.kids, uses: S.uses });
+  let n = 0, made = 0;
+  rows.forEach((r) => {
+    let kid = r.kidId;
+    if (!kid) {
+      const ex = S.kids.find((k) => norm(k.name) === norm(r.raw));
+      if (ex) kid = ex.id; else { kid = uid(); S.kids.push({ id: kid, name: r.raw, kana: '', cls: '', parent: '', type: 'std', active: true }); made++; }
+    }
+    S.uses = S.uses.filter((u) => !(u.kidId === kid && u.date === r.date));
+    S.uses.push({ id: uid(), kidId: kid, date: r.date, in: r.in, out: r.out, fee: r.fee, note: r.note });
+    n++;
+  });
+  stage = stage.filter((r) => !r.on);
+  save(); renderStage();
+  toast(`${n}件を記録に追加しました${made ? `（新しい園児 ${made}人を名簿に登録）` : ''}`, () => { const b = JSON.parse(before); S.kids = b.kids; S.uses = b.uses; save(); renderAll(); });
+});
+
+/* =========================================================
+   記録
+   ========================================================= */
+function renderRecs() {
+  const ym = $('rMonth').value || thisMonth();
+  const list = usesOf(ym);
+  if (!list.length) { $('recBody').innerHTML = `<div class="empty"><h2>${ymLabel(ym)}の記録はありません</h2><p>「写真」で読み取るか、「＋ 記録を追加」で入力してください。</p></div>`; return; }
+  let tot = 0, totMin = 0;
+  const html = list.map((u) => {
+    const k = kidOf(u.kidId) || { name: '（削除された園児）', cls: '' }, c = calc(u); tot += c.fee; totMin += c.min;
+    const parts = []; if (c.before) parts.push(`朝${c.before}分`); if (c.after) parts.push(`夕${c.after}分`);
+    return `<tr class="clickable" data-uid="${u.id}"><td>${dayShort(u.date)}</td><td>${esc(k.name)}</td><td class="small muted">${esc(k.cls || '')}</td><td class="num">${u.in || ''}</td><td class="num">${u.out || ''}</td><td class="r num">${parts.join('・') || '<span class="muted">延長なし</span>'}</td><td class="r num ${c.fee ? 'ext-c' : ''}">${yen(c.fee)}${c.manual ? ' <span class="tag">手入力</span>' : ''}</td><td class="small">${esc(u.note || '')}</td></tr>`;
+  }).join('');
+  $('recBody').innerHTML = `<div class="tablewrap"><table><thead><tr><th>日付</th><th>名前</th><th>クラス</th><th>登園</th><th>お迎え</th><th class="r">延長</th><th class="r">料金</th><th>メモ</th></tr></thead><tbody>${html}<tr class="sum"><td colspan="5">${list.length}件</td><td class="r num">${fmtDur(totMin)}</td><td class="r num">${yen(tot)}</td><td></td></tr></tbody></table></div><p class="small muted">行をタップすると直せます。月の上限は「帳票」で反映されます。</p>`;
+}
+$('rMonth').addEventListener('change', renderRecs);
+$('recBody').addEventListener('click', (e) => { const tr = e.target.closest('[data-uid]'); if (tr) openUse(tr.dataset.uid); });
+$('newUse').addEventListener('click', () => openUse());
+let useEditing = null;
+function openUse(id) {
+  if (!S.kids.length) { toast('先に「園児」で名簿を作ってください'); return; }
+  const u = id ? S.uses.find((x) => x.id === id) : null;
+  useEditing = id || null;
+  $('useTitle').textContent = u ? '記録を直す' : '記録を追加';
+  $('uKid').innerHTML = S.kids.slice().sort(kidSort).map((k) => `<option value="${k.id}">${esc(k.name)}${k.cls ? `（${esc(k.cls)}）` : ''}</option>`).join('');
+  const ym = $('rMonth').value || thisMonth();
+  $('uKid').value = u ? u.kidId : S.kids.slice().sort(kidSort)[0].id;
+  $('uDate').value = u ? u.date : (todayKey().startsWith(ym) ? todayKey() : `${ym}-01`);
+  $('uIn').value = u ? u.in || '' : ''; $('uOut').value = u ? u.out || '' : '';
+  $('uFee').value = u && u.fee !== '' && u.fee != null ? u.fee : ''; $('uNote').value = u ? u.note || '' : '';
+  $('useDel').hidden = !u; useCalc(); $('dlgUse').showModal();
+}
+function useCalc() {
+  const k = kidOf($('uKid').value), h = hoursOf(k);
+  const c = calc({ kidId: $('uKid').value, in: $('uIn').value, out: $('uOut').value, fee: $('uFee').value });
+  $('useSub').textContent = `保育時間 ${h.start}〜${h.end}（${h.label}）`;
+  $('useCalc').textContent = c.min ? `延長 ${fmtDur(c.min)} → ${yen(c.fee)}` : (c.manual ? `料金 ${yen(c.fee)}（手入力）` : '延長なし');
+}
+['uKid', 'uIn', 'uOut', 'uFee'].forEach((id) => $(id).addEventListener('input', useCalc));
+$('useCancel').addEventListener('click', () => $('dlgUse').close());
+$('useForm').addEventListener('submit', (e) => {
+  if (!$('uIn').value && !$('uOut').value) { e.preventDefault(); $('useCalc').textContent = '登園かお迎えの時刻を入れてください'; return; }
+  const data = { kidId: $('uKid').value, date: $('uDate').value, in: $('uIn').value, out: $('uOut').value, fee: $('uFee').value, note: $('uNote').value.trim() };
+  if (useEditing) Object.assign(S.uses.find((x) => x.id === useEditing), data);
+  else { S.uses = S.uses.filter((u) => !(u.kidId === data.kidId && u.date === data.date)); S.uses.push({ id: uid(), ...data }); }
+  save(); renderAll();
+});
+$('useDel').addEventListener('click', () => {
+  const u = S.uses.find((x) => x.id === useEditing);
+  S.uses = S.uses.filter((x) => x !== u); save(); $('dlgUse').close(); renderAll();
+  toast('記録を削除しました', () => { S.uses.push(u); save(); renderAll(); });
+});
+
+/* 登降園アプリ（同じ端末）からの取りこみ */
+function readHoiku() { try { const d = JSON.parse(localStorage.getItem(HOIKU_KEY)); return d && Array.isArray(d.children) ? d : null; } catch (e) { return null; } }
+function importKidsFrom(d) {
+  let n = 0;
+  d.children.forEach((c) => {
+    if (S.kids.some((k) => k.id === c.id || norm(k.name) === norm(c.name))) return;
+    S.kids.push({ id: c.id, name: c.name, kana: c.kana || '', cls: c.cls || '', parent: '', type: c.type || 'std', start: c.start || '', end: c.end || '', active: c.active !== false }); n++;
+  });
+  return n;
+}
+$('importKids').addEventListener('click', () => {
+  const d = readHoiku(); if (!d) { alert('この端末の登降園アプリに名簿が見つかりませんでした。'); return; }
+  const n = importKidsFrom(d); save(); renderAll(); toast(n ? `${n}人を取りこみました` : '新しく取りこむ園児はいませんでした');
+});
+$('importHoiku').addEventListener('click', () => {
+  const d = readHoiku(); if (!d) { alert('この端末の登降園アプリに記録が見つかりませんでした。'); return; }
+  const ym = $('rMonth').value || thisMonth();
+  if (!confirm(`登降園アプリの ${ymLabel(ym)} の登降園記録を取りこみます。延長があった日だけを追加し、同じ日・同じ子の記録は上書きします。`)) return;
+  importKidsFrom(d);
+  const idMap = {}; d.children.forEach((c) => { const k = S.kids.find((x) => x.id === c.id) || S.kids.find((x) => norm(x.name) === norm(c.name)); if (k) idMap[c.id] = k.id; });
+  let n = 0;
+  Object.keys(d.records || {}).filter((k) => k.startsWith(ym)).forEach((date) => {
+    Object.entries(d.records[date]).forEach(([cid, r]) => {
+      if (!r || r.absent || !r.in || !idMap[cid]) return;
+      const u = { kidId: idMap[cid], date, in: r.in, out: r.out || '', fee: '', note: r.pick ? `お迎え：${r.pick}` : '' };
+      if (!calc(u).min) return;
+      S.uses = S.uses.filter((x) => !(x.kidId === u.kidId && x.date === date));
+      S.uses.push({ id: uid(), ...u }); n++;
+    });
+  });
+  save(); renderAll(); toast(`${n}件の延長保育を取りこみました`);
+});
+
+/* =========================================================
+   帳票
+   ========================================================= */
+let docType = 'stats', docKid = '';
+$('docSeg').addEventListener('click', (e) => { const b = e.target.closest('[data-doc]'); if (!b) return; docType = b.dataset.doc; renderDocs(); });
+$('dMonth').addEventListener('change', renderDocs);
+function issuerBlock(withStamp = true) {
+  const s = S.settings;
+  return `<div class="issuer"><b>${esc(s.orgName || '若夏保育園')}</b><br>${s.orgAddr ? esc(s.orgAddr) + '<br>' : ''}${s.orgTel ? 'TEL ' + esc(s.orgTel) + '<br>' : ''}${s.orgRep ? '園長　' + esc(s.orgRep) : ''}${withStamp ? '<span class="stamp">印</span>' : ''}</div>`;
+}
+function detailTable(row, compact) {
+  const showIn = row.items.some((x) => x.u.in && x.c.before);
+  return `<table><thead><tr><th>日付</th>${showIn ? '<th>登園</th>' : ''}<th>お迎え</th><th>延長時間</th>${S.settings.feeMode === 'flat' ? '' : '<th>単位</th>'}<th>金額</th>${compact ? '' : '<th>備考</th>'}</tr></thead><tbody>` +
+    row.items.map((x) => `<tr><td>${dayShort(x.u.date)}</td>${showIn ? `<td class="c num">${x.c.before ? x.u.in : ''}</td>` : ''}<td class="c num">${x.u.out || ''}</td><td class="r num">${x.c.min ? fmtDur(x.c.min) : ''}</td>${S.settings.feeMode === 'flat' ? '' : `<td class="r num">${x.c.units}</td>`}<td class="r num">${yen(x.c.fee)}</td>${compact ? '' : `<td>${esc(x.u.note || '')}${x.c.manual ? '' : ''}</td>`}</tr>`).join('') +
+    (row.capped ? `<tr><td colspan="${(showIn ? 4 : 3) + (S.settings.feeMode === 'flat' ? 0 : 1)}">月の上限（${yen(S.settings.cap)}）による調整</td><td class="r num">−${yen(row.raw - row.fee)}</td>${compact ? '' : '<td></td>'}</tr>` : '') +
+    `<tr class="tot"><td>合計 ${row.count}回</td>${showIn ? '<td></td>' : ''}<td></td><td class="r num">${fmtDur(row.min)}</td>${S.settings.feeMode === 'flat' ? '' : `<td class="r num">${row.units}</td>`}<td class="r num">${yen(row.fee)}</td>${compact ? '' : '<td></td>'}</tr></tbody></table>`;
+}
+function feeRule() {
+  const s = S.settings;
+  return s.feeMode === 'flat' ? `延長保育料：1回 ${yen(s.fee)}` : `延長保育料：${s.unit}分ごとに ${yen(s.fee)}`;
+}
+function docStats(ym) {
+  const rows = monthRows(ym), all = rows.flatMap((r) => r.items);
+  const total = rows.reduce((s, r) => s + r.fee, 0), min = rows.reduce((s, r) => s + r.min, 0);
+  const paid = rows.filter((r) => S.receipts[rcKey(ym, r.k.id)]);
+  const paidSum = paid.reduce((s, r) => s + S.receipts[rcKey(ym, r.k.id)].amount, 0);
+  const cls = {};
+  rows.forEach((r) => { const c = r.k.cls || '（クラス未設定）'; cls[c] = cls[c] || { kids: 0, count: 0, min: 0, fee: 0 }; cls[c].kids++; cls[c].count += r.count; cls[c].min += r.min; cls[c].fee += r.fee; });
+  const days = {};
+  all.forEach((x) => { const d = days[x.u.date] = days[x.u.date] || { n: 0, min: 0, fee: 0, am: 0, pm: 0 }; d.n++; d.min += x.c.min; d.fee += x.c.fee; if (x.c.before) d.am++; if (x.c.after) d.pm++; });
+  const dk = Object.keys(days).sort(), maxN = Math.max(1, ...dk.map((k) => days[k].n));
+  const bands = {};
+  all.forEach((x) => { if (!x.c.after || !x.u.out) return; const m = toMin(x.u.out), b = Math.floor(m / 30) * 30; const lab = `${pad(Math.floor(b / 60))}:${pad(b % 60)}〜${pad(Math.floor((b + 30) / 60))}:${pad((b + 30) % 60)}`; bands[lab] = (bands[lab] || 0) + 1; });
+  const bk = Object.keys(bands).sort(), maxB = Math.max(1, ...bk.map((k) => bands[k]));
+  return `<div class="sheet stats"><h1 class="sm">延長保育 月統計</h1>
+  <div class="meta2"><div><b style="font-size:13pt">${ymLabel(ym)}分</b><br><span class="small">${esc(feeRule())}${+S.settings.cap ? `（月上限 ${yen(S.settings.cap)}）` : ''}</span></div><div class="right small">作成日 ${dateLabel(todayKey())}<br>${esc(S.settings.orgName)}</div></div>
+  <div class="kv"><div><div class="k">利用した園児</div><div class="v num">${rows.length}人</div></div><div><div class="k">延べ利用回数</div><div class="v num">${all.length}回</div></div><div><div class="k">延べ延長時間</div><div class="v num">${fmtDur(min)}</div></div><div><div class="k">延長保育料の合計</div><div class="v num">${yen(total)}</div></div></div>
+  <div class="kv"><div><div class="k">利用した日数</div><div class="v num">${dk.length}日</div></div><div><div class="k">1日平均の利用人数</div><div class="v num">${dk.length ? (all.length / dk.length).toFixed(1) : 0}人</div></div><div><div class="k">領収済み</div><div class="v num">${paid.length}人 / ${yen(paidSum)}</div></div><div><div class="k">未収</div><div class="v num">${rows.length - paid.length}人 / ${yen(total - paidSum)}</div></div></div>
+  <h3>クラス別</h3>
+  <table><thead><tr><th>クラス</th><th>利用人数</th><th>延べ回数</th><th>延べ時間</th><th>金額</th></tr></thead><tbody>${Object.keys(cls).sort(clsSort).map((c) => `<tr><td>${esc(c)}</td><td class="r num">${cls[c].kids}人</td><td class="r num">${cls[c].count}回</td><td class="r num">${fmtDur(cls[c].min)}</td><td class="r num">${yen(cls[c].fee)}</td></tr>`).join('')}<tr class="tot"><td>合計</td><td class="r num">${rows.length}人</td><td class="r num">${all.length}回</td><td class="r num">${fmtDur(min)}</td><td class="r num">${yen(total)}</td></tr></tbody></table>
+  <div class="twocol">
+  <div><h3>日別の利用人数</h3><table><thead><tr><th>日付</th><th>人数</th><th style="width:30mm"></th><th>金額</th></tr></thead><tbody>${dk.map((k) => `<tr><td>${dayShort(k)}</td><td class="r num">${days[k].n}人${days[k].am ? `<span class="small">（朝${days[k].am}）</span>` : ''}</td><td><span class="bar" style="width:${(days[k].n / maxN) * 28}mm"></span></td><td class="r num">${yen(days[k].fee)}</td></tr>`).join('') || '<tr><td colspan="4">記録なし</td></tr>'}</tbody></table></div>
+  <div><h3>お迎えの時間帯（夕方の延長）</h3><table><thead><tr><th>時間帯</th><th>回数</th><th style="width:30mm"></th></tr></thead><tbody>${bk.map((k) => `<tr><td class="num">${k}</td><td class="r num">${bands[k]}回</td><td><span class="bar" style="width:${(bands[k] / maxB) * 28}mm"></span></td></tr>`).join('') || '<tr><td colspan="3">記録なし</td></tr>'}</tbody></table></div>
+  </div></div>`;
+}
+function docInvoice(ym, r) {
+  const due = payDue(ym), s = S.settings;
+  return `<div class="sheet"><h1>請求書</h1>
+  <div class="meta2"><div><div class="to">${esc(addressee(r.k))}</div><div class="small" style="margin-top:2mm">園児名：${esc(r.k.name)}${r.k.cls ? `（${esc(r.k.cls)}）` : ''}</div></div><div class="right small">発行日 ${dateLabel(todayKey())}<br>請求番号 ${ym.replace('-', '')}-${esc(r.k.id.slice(-4).toUpperCase())}</div></div>
+  <p>下記のとおり、${ymLabel(ym)}分の延長保育料をご請求いたします。</p>
+  <div class="amount"><span class="k">ご請求金額</span><span class="v num">${yen(r.fee)}</span><span class="small">（非課税）</span></div>
+  <div class="meta2" style="margin-bottom:3mm"><div class="small">対象月：${ymLabel(ym)}<br>${esc(feeRule())}${due ? `<br>お支払期限：<b>${due}</b>` : ''}${s.payHow ? `<br>${esc(s.payHow)}` : ''}</div>${issuerBlock()}</div>
+  <h3>ご利用の明細</h3>${detailTable(r)}
+  <p class="foot2">※保育時間（${hoursOf(r.k).start}〜${hoursOf(r.k).end}）をこえた時間を延長保育として計算しています${+s.grace ? `（${s.grace}分以内は延長に含めません）` : ''}。ご不明な点は園までお問い合わせください。</p></div>`;
+}
+function rcHalf(ym, r, rc, ctl) {
+  return `<div class="half"><span class="tagline ${ctl ? 'ctl' : ''}">${ctl ? '控（園保管用）' : '保護者様用'}</span>
+  <h1>${ctl ? '領収証（控）' : '領収証'}</h1>
+  <div class="meta2"><div><div class="to">${esc(addressee(r.k))}</div><div class="small" style="margin-top:1.5mm">園児名：${esc(r.k.name)}${r.k.cls ? `（${esc(r.k.cls)}）` : ''}</div></div><div class="rcno">No. ${esc(rc.no)}<br>${dateLabel(rc.date)}</div></div>
+  <div class="amount"><span class="k">金額</span><span class="v num">￥${(+rc.amount).toLocaleString('ja-JP')}－</span><span class="small">（非課税）</span></div>
+  <div class="tad">但し　${ymLabel(ym)}分 延長保育料として（${r.count}回・${fmtDur(r.min)}）<br>上記の金額を正に領収いたしました。</div>
+  <div class="rcrow"><div class="small" style="flex:1">${ctl ? `受領者：＿＿＿＿＿＿　受領方法：現金・振込・その他（　　　）` : esc(feeRule())}</div>${issuerBlock()}</div>
+  </div>`;
+}
+function docReceipt(ym, r, rc) {
+  return `<div class="sheet rc">${rcHalf(ym, r, rc, false)}<div class="cut"><span>✂ きりとり</span></div>${rcHalf(ym, r, rc, true)}</div>`;
+}
+function docList(ym) {
+  const rows = monthRows(ym), n = monthDays(ym), [y, m] = ym.split('-').map(Number);
+  const ds = Array.from({ length: n }, (_, i) => i + 1);
+  const we = (d) => { const w = new Date(y, m - 1, d).getDay(); return w === 0 || w === 6; };
+  const colTot = ds.map(() => 0); let totFee = 0, totCnt = 0, totMin = 0;
+  const body = rows.map((r, i) => {
+    const map = {}; r.items.forEach((x) => { map[+x.u.date.slice(8)] = x; });
+    const cells = ds.map((d, j) => { const x = map[d]; if (!x) return '<td></td>'; colTot[j]++; return `<td class="hit num">${S.settings.feeMode === 'flat' ? '○' : x.c.units}</td>`; }).join('');
+    const rc = S.receipts[rcKey(ym, r.k.id)];
+    totFee += r.fee; totCnt += r.count; totMin += r.min;
+    return `<tr><td class="num">${i + 1}</td><td class="nm">${esc(r.k.name)}</td><td class="nm">${esc(r.k.cls || '')}</td>${cells}<td class="num">${r.count}</td><td class="num">${fmtDur(r.min)}</td><td class="num" style="text-align:right">${(r.fee).toLocaleString('ja-JP')}</td><td class="num">${rc ? esc(rc.no) : ''}</td></tr>`;
+  }).join('');
+  return `<div class="sheet land"><div class="meta2" style="margin-bottom:2mm"><div><h1 class="sm" style="text-align:left;margin:0">延長保育 月一覧　${ymLabel(ym)}分</h1></div><div class="right small">${esc(S.settings.orgName)}　作成日 ${dateLabel(todayKey())}</div></div>
+  <table><colgroup><col style="width:6mm"><col style="width:26mm"><col style="width:20mm">${ds.map(() => '<col>').join('')}<col style="width:9mm"><col style="width:15mm"><col style="width:14mm"><col style="width:16mm"></colgroup>
+  <thead><tr><th>No</th><th>名前</th><th>クラス</th>${ds.map((d) => `<th class="${we(d) ? 'we' : ''}">${d}<br>${WD[new Date(y, m - 1, d).getDay()]}</th>`).join('')}<th>回数</th><th>時間</th><th>金額(円)</th><th>領収No</th></tr></thead>
+  <tbody>${body || `<tr><td colspan="${n + 7}">この月の延長保育の記録はありません</td></tr>`}<tr class="tot"><td colspan="3">日別人数</td>${colTot.map((c) => `<td class="num">${c || ''}</td>`).join('')}<td class="num">${totCnt}</td><td class="num">${fmtDur(totMin)}</td><td class="num" style="text-align:right">${totFee.toLocaleString('ja-JP')}</td><td></td></tr></tbody></table>
+  <div class="legend">マスの数字は延長の単位数（${S.settings.feeMode === 'flat' ? '○＝利用あり' : `1単位＝${S.settings.unit}分`}）。${esc(feeRule())}${+S.settings.cap ? `、月上限 ${yen(S.settings.cap)}` : ''}。</div></div>`;
+}
+function renderDocs() {
+  if (!$('dMonth').value) $('dMonth').value = thisMonth();
+  const ym = $('dMonth').value;
+  document.querySelectorAll('#docSeg [data-doc]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.doc === docType)));
+  const rows = monthRows(ym);
+  if (docKid && !rows.some((r) => r.k.id === docKid)) docKid = '';
+  const kidSel = `<select id="docKid" class="inline-input" style="width:auto"><option value="">全員（${rows.length}人）</option>${rows.map((r) => `<option value="${r.k.id}" ${r.k.id === docKid ? 'selected' : ''}>${esc(r.k.name)}　${yen(r.fee)}</option>`).join('')}</select>`;
+  const pick = rows.filter((r) => !docKid || r.k.id === docKid);
+  let opts = '', note = '', html = '';
+  const printBtn = `<button type="button" class="btn sm" id="printBtn">印刷・PDFに保存</button>`;
+  if (!rows.length && docType !== 'stats') {
+    $('docOpts').innerHTML = ''; $('docNote').innerHTML = `<div class="empty"><h2>${ymLabel(ym)}の延長保育の記録はありません</h2><p>「写真」か「記録」から入力してください。</p></div>`; $('docView').innerHTML = ''; return;
+  }
+  if (docType === 'stats') { opts = printBtn; html = docStats(ym); }
+  else if (docType === 'list') { opts = printBtn + '<span class="small muted">A4横で印刷されます</span>'; html = docList(ym); }
+  else if (docType === 'invoice') { opts = kidSel + printBtn; html = pick.map((r) => docInvoice(ym, r)).join(''); }
+  else {
+    const issued = pick.filter((r) => S.receipts[rcKey(ym, r.k.id)]);
+    const notYet = pick.filter((r) => !S.receipts[rcKey(ym, r.k.id)]);
+    const changed = issued.filter((r) => S.receipts[rcKey(ym, r.k.id)].amount !== r.fee);
+    opts = kidSel + `<label class="small muted">領収日 <input type="date" id="rcDate" class="inline-input" style="width:auto" value="${todayKey()}"></label>` +
+      (notYet.length ? `<button type="button" class="btn sm" id="issueBtn">${notYet.length}人分を発行（入金済みにする）</button>` : '') +
+      (issued.length ? printBtn : '') + (issued.length ? `<button type="button" class="btn danger sm" id="unissueBtn">発行を取り消す</button>` : '');
+    note = (notYet.length ? `<div class="warnmsg">領収証は、入金を受けたら「発行」してください。発行すると番号（No.）がつき、月一覧・月統計に「領収済み」として出ます。<br>まだ発行していない人：${notYet.map((r) => `${esc(r.k.name)}（${yen(r.fee)}）`).join('、')}</div>` : '') +
+      (changed.length ? `<div class="warnmsg">発行後に記録が変わって金額がちがう人がいます：${changed.map((r) => `${esc(r.k.name)}（領収 ${yen(S.receipts[rcKey(ym, r.k.id)].amount)} → 今 ${yen(r.fee)}）`).join('、')}。必要なら発行を取り消してから発行し直してください。</div>` : '') +
+      (issued.length ? `<div class="okmsg">発行済み ${issued.length}人。上半分が保護者様にお渡しする領収証、下半分が園で保管する控えです。点線で切り分けてください。</div>` : '');
+    html = issued.map((r) => docReceipt(ym, r, S.receipts[rcKey(ym, r.k.id)])).join('');
+  }
+  $('docOpts').innerHTML = opts; $('docNote').innerHTML = note; $('docView').innerHTML = html;
+  const ks = $('docKid'); if (ks) ks.addEventListener('change', () => { docKid = ks.value; renderDocs(); });
+  const pb = $('printBtn'); if (pb) pb.addEventListener('click', () => window.print());
+  const ib = $('issueBtn'); if (ib) ib.addEventListener('click', () => {
+    const d = $('rcDate').value || todayKey();
+    pick.filter((r) => !S.receipts[rcKey(ym, r.k.id)]).forEach((r) => {
+      S.settings.rcSeq = (+S.settings.rcSeq || 0) + 1;
+      S.receipts[rcKey(ym, r.k.id)] = { no: `${d.slice(0, 4)}-${String(S.settings.rcSeq).padStart(4, '0')}`, date: d, amount: r.fee };
+    });
+    save(); renderDocs(); toast('領収証を発行しました。「印刷・PDFに保存」で印刷できます');
+  });
+  const ub = $('unissueBtn'); if (ub) ub.addEventListener('click', () => {
+    const t = pick.filter((r) => S.receipts[rcKey(ym, r.k.id)]);
+    if (!confirm(`${docKid ? t[0].k.name + ' さん' : t.length + '人'}の領収証の発行を取り消しますか？（番号は欠番になります）`)) return;
+    t.forEach((r) => delete S.receipts[rcKey(ym, r.k.id)]); save(); renderDocs();
+  });
+}
+
+/* =========================================================
+   園児
+   ========================================================= */
+function renderKids() {
+  const list = S.kids.slice().sort(kidSort);
+  if (!list.length) { $('kidList').innerHTML = `<div class="empty"><h2>まだ登録がありません</h2><p>「＋ 園児を追加」か、登降園アプリの名簿を取りこんでください。写真を読み取ったときに新しく登録することもできます。</p></div>`; return; }
+  const groups = {};
+  list.forEach((k) => (groups[k.cls || '（クラス未設定）'] = groups[k.cls || '（クラス未設定）'] || []).push(k));
+  $('kidList').innerHTML = Object.keys(groups).sort(clsSort).map((cls) => `<div class="panel"><h2>${esc(cls)} <span class="small muted">${groups[cls].length}人</span></h2>` +
+    groups[cls].map((k) => { const h = hoursOf(k); return `<div class="kidrow"><div><span class="n">${esc(k.name)}</span>${k.active === false ? '<span class="tag">在籍外</span>' : ''}<div class="small muted">${esc(k.kana || '')} ・ ${h.label} ${h.start}〜${h.end}${k.parent ? ` ・ 宛名：${esc(k.parent)}` : ''}</div></div><button type="button" class="btn ghost sm" data-kid="${k.id}">編集</button></div>`; }).join('') + `</div>`).join('');
+}
+let kidEditing = null;
+function openKid(id) {
+  const k = id ? kidOf(id) : null; kidEditing = id || null;
+  $('kidTitle').textContent = k ? '園児を編集' : '園児を追加';
+  $('kName').value = k ? k.name : ''; $('kKana').value = k ? k.kana || '' : ''; $('kCls').value = k ? k.cls || '' : '';
+  $('kParent').value = k ? k.parent || '' : ''; $('kType').value = k ? k.type || 'std' : 'std';
+  $('kStart').value = k && k.start ? k.start : S.settings.std.start; $('kEnd').value = k && k.end ? k.end : S.settings.std.end;
+  $('kActive').checked = k ? k.active !== false : true; $('kCustom').hidden = $('kType').value !== 'custom'; $('kidDelete').hidden = !k;
+  $('clsList').innerHTML = [...new Set(S.kids.map((x) => x.cls).filter(Boolean))].sort(clsSort).map((x) => `<option value="${esc(x)}">`).join('');
+  $('dlgKid').showModal();
+}
+$('kType').addEventListener('change', () => { $('kCustom').hidden = $('kType').value !== 'custom'; });
+$('addKid').addEventListener('click', () => openKid());
+$('kidList').addEventListener('click', (e) => { const b = e.target.closest('[data-kid]'); if (b) openKid(b.dataset.kid); });
+$('kidCancel').addEventListener('click', () => $('dlgKid').close());
+$('kidForm').addEventListener('submit', () => {
+  const t = $('kType').value;
+  const data = { name: $('kName').value.trim(), kana: $('kKana').value.trim(), cls: $('kCls').value.trim(), parent: $('kParent').value.trim(), type: t, start: t === 'custom' ? $('kStart').value : '', end: t === 'custom' ? $('kEnd').value : '', active: $('kActive').checked };
+  if (kidEditing) Object.assign(kidOf(kidEditing), data); else S.kids.push({ id: uid(), ...data });
+  save(); renderAll();
+});
+$('kidDelete').addEventListener('click', () => {
+  const k = kidOf(kidEditing);
+  if (!confirm(`${k.name} さんを名簿から削除しますか？\n延長保育の記録も消えます。`)) return;
+  S.kids = S.kids.filter((x) => x !== k); S.uses = S.uses.filter((u) => u.kidId !== k.id);
+  save(); $('dlgKid').close(); renderAll();
+});
+
+/* =========================================================
+   設定
+   ========================================================= */
+const SET_IDS = ['stdStart', 'stdEnd', 'shortStart', 'shortEnd', 'feeMode', 'unitMin', 'feeUnit', 'grace', 'cap', 'orgName', 'orgAddr', 'orgTel', 'orgRep', 'payDay', 'payHow', 'eraSel', 'apiKey', 'model', 'effort'];
+function renderSettings() {
+  const s = S.settings;
+  $('stdStart').value = s.std.start; $('stdEnd').value = s.std.end; $('shortStart').value = s.short.start; $('shortEnd').value = s.short.end;
+  $('feeMode').value = s.feeMode; $('unitMin').value = String(s.unit); $('feeUnit').value = s.fee; $('grace').value = s.grace; $('cap').value = s.cap;
+  $('orgName').value = s.orgName; $('orgAddr').value = s.orgAddr; $('orgTel').value = s.orgTel; $('orgRep').value = s.orgRep;
+  $('payDay').value = s.payDay; $('payHow').value = s.payHow; $('eraSel').value = s.era;
+  $('apiKey').value = s.apiKey; $('model').value = s.model; $('effort').value = s.effort;
+  $('unitWrap').hidden = s.feeMode === 'flat';
+  $('feeLbl').textContent = s.feeMode === 'flat' ? '1回の料金（円）' : '1単位の料金（円）';
+  $('feeExample').textContent = s.feeMode === 'flat'
+    ? `例：標準時間の子が ${s.std.end} をすぎてお迎え → 1回 ${yen(s.fee)}`
+    : `例：標準時間の子が ${s.std.end} の40分後にお迎え → 延長40分 → ${Math.ceil(40 / s.unit)}単位 × ${yen(s.fee)} = ${yen(Math.ceil(40 / s.unit) * s.fee)}${s.grace >= 40 ? '（猶予内のため実際は0円）' : ''}`;
+}
+SET_IDS.forEach((id) => $(id).addEventListener('change', () => {
+  const s = S.settings, v = (x) => $(x).value;
+  s.std = { start: v('stdStart') || DEF.std.start, end: v('stdEnd') || DEF.std.end };
+  s.short = { start: v('shortStart') || DEF.short.start, end: v('shortEnd') || DEF.short.end };
+  s.feeMode = v('feeMode'); s.unit = +v('unitMin') || 30; s.fee = Math.max(0, +v('feeUnit') || 0);
+  s.grace = Math.max(0, +v('grace') || 0); s.cap = Math.max(0, +v('cap') || 0);
+  s.orgName = v('orgName').trim() || DEF.orgName; s.orgAddr = v('orgAddr').trim(); s.orgTel = v('orgTel').trim(); s.orgRep = v('orgRep').trim();
+  s.payDay = Math.max(0, Math.min(31, +v('payDay') || 0)); s.payHow = v('payHow').trim(); s.era = v('eraSel');
+  s.apiKey = v('apiKey').trim(); s.model = v('model').trim() || DEF.model; s.effort = v('effort');
+  save(); renderSettings(); toast('設定を保存しました');
+}));
+$('forgetKey').addEventListener('click', () => { S.settings.apiKey = ''; save(); renderSettings(); toast('API キーを消しました'); });
+function download(name, text, type) {
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([text], { type })); a.download = name;
+  document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+$('backupBtn').addEventListener('click', () => {
+  const copy = JSON.parse(JSON.stringify(S)); copy.settings.apiKey = '';
+  download(`若夏保育園_延長保育_バックアップ_${todayKey()}.json`, JSON.stringify(copy, null, 1), 'application/json');
+});
+$('restoreFile').addEventListener('change', async (e) => {
+  const f = e.target.files[0]; e.target.value = ''; if (!f) return;
+  try {
+    const d = normalize(JSON.parse(await f.text())); if (!d) throw new Error('bad');
+    if (!confirm(`バックアップ（園児 ${d.kids.length}人・記録 ${d.uses.length}件）で今のデータを置き換えますか？`)) return;
+    d.settings.apiKey = S.settings.apiKey; S = d; save(); renderAll(); toast('復元しました');
+  } catch (err) { alert('このファイルは読み込めませんでした。このアプリで保存したバックアップを選んでください。'); }
+});
+$('sampleBtn').addEventListener('click', () => {
+  const ym = thisMonth(), [y, m] = ym.split('-').map(Number);
+  const names = [['比嘉 ゆい', 'ひが ゆい', '3歳児 ぱんだ組', '比嘉 花子'], ['金城 りく', 'きんじょう りく', '4歳児 きりん組', '金城 健'], ['宮城 さくら', 'みやぎ さくら', '5歳児 ぞう組', ''], ['大城 はると', 'おおしろ はると', '2歳児 うさぎ組', '大城 美香']];
+  const ids = names.map(([name, kana, cls, parent]) => { const id = uid(); S.kids.push({ id, name: name + '（見本）', kana, cls, parent, type: 'std', active: true }); return id; });
+  const outs = ['18:20', '18:45', '18:10', '19:00', '18:35'];
+  for (let d = 1; d <= monthDays(ym); d++) {
+    const w = new Date(y, m - 1, d).getDay(); if (w === 0 || w === 6) continue;
+    ids.forEach((id, i) => { if ((d + i) % 3 === 0) S.uses.push({ id: uid(), kidId: id, date: `${ym}-${pad(d)}`, in: i === 3 && d % 2 ? '06:45' : '', out: outs[(d + i) % outs.length], fee: '', note: '' }); });
+  }
+  save(); renderAll(); toast('見本の園児と記録を入れました。不要になったら園児画面から削除できます');
+});
+$('resetBtn').addEventListener('click', () => {
+  if (!confirm('名簿・記録・領収証の発行履歴・設定をすべて消します。元に戻せません。よろしいですか？')) return;
+  S = blank(); save(); renderAll(); toast('すべてのデータを消しました');
+});
+
+/* ---------- tabs ---------- */
+let tab = 'photo';
+function go(t) {
+  tab = t;
+  ['photo', 'recs', 'docs', 'kids', 'settings'].forEach((x) => { $('s-' + x).hidden = x !== t; });
+  document.querySelectorAll('.tabbar [data-tab]').forEach((b) => { if (b.dataset.tab === t) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current'); });
+  renderAll(); window.scrollTo(0, 0);
+}
+document.querySelectorAll('.tabbar [data-tab]').forEach((b) => b.addEventListener('click', () => go(b.dataset.tab)));
+function renderAll() {
+  if (tab === 'photo') { renderPhotos(); renderStage(); }
+  else if (tab === 'recs') renderRecs();
+  else if (tab === 'docs') renderDocs();
+  else if (tab === 'kids') renderKids();
+  else renderSettings();
+}
+// 月の入力は3画面で共通にする
+['pMonth', 'rMonth', 'dMonth'].forEach((id) => { $(id).value = thisMonth(); $(id).addEventListener('change', () => { const v = $(id).value; if (v) ['pMonth', 'rMonth', 'dMonth'].forEach((o) => { $(o).value = v; }); }); });
+try { localStorage.setItem(KEY + '-t', '1'); localStorage.removeItem(KEY + '-t'); } catch (e) { $('storeWarn').hidden = false; }
+if (!S.kids.length) { const d = readHoiku(); if (d && d.children.length) { importKidsFrom(d); save(); } }
+renderAll();
+})();
+</script>
+</body>
+</html>
